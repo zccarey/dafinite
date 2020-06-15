@@ -1,0 +1,7 @@
+git-issue-025.dfy(29,0): Error BP5003: A postcondition might not hold on this return path.
+git-issue-025.dfy(28,10): Related location: This is the postcondition that might not hold.
+git-issue-025.dfy(28,99): Related location
+Execution trace:
+    (0,0): anon0
+
+Dafny program verifier finished with 3 verified, 1 error
