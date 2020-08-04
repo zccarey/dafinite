@@ -296,7 +296,7 @@ bool IsBitwiseOp() {
   return IsBitwiseAndOp() || IsBitwiseOrOp() || IsBitwiseXorOp();
 }
 bool IsAs() {
-  return la.kind == _as;
+  return la.kind == _as || la.kind == _is;
 }
 bool IsRelOp() {
   return la.val == "=="
@@ -735,6 +735,7 @@ TOKENS
   then = "then".
   else = "else".
   as = "as".
+  is = "is".
   by = "by".
   in = "in".
   decreases = "decreases".
@@ -3288,11 +3289,11 @@ BitvectorFactor<out Expression e0, bool allowSemi, bool allowLambda, bool allowB
   .
 /*------------------------------------------------------------------------*/
 AsExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>
-= (. IToken tok; IToken x; Type toType; .)
+= (. IToken tok; IToken x; bool isIs = false; Type toType; .)
   UnaryExpression<out e, allowSemi, allowLambda, allowBitwiseOps>
   { IF(IsAs())
-    "as"                                     (. tok = t; .)
-     TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType); .)
+    ( "as" | "is" (. isIs = true; .) ) (. tok = t; .)
+    TypeAndToken<out x, out toType, true>   (. e = new ConversionExpr(tok, e, toType, isIs); .)
   }
   .
 UnaryExpression<out Expression e, bool allowSemi, bool allowLambda, bool allowBitwiseOps>

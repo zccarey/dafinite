@@ -13187,7 +13187,9 @@ namespace Microsoft.Dafny
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveType(e.tok, e.ToType, opts.codeContext, new ResolveTypeOption(ResolveTypeOptionEnum.DontInfer), null);
         if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-          if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
+          if (e.Is) {
+            reporter.Error(MessageSource.Resolver, expr, "is expressions are not yet supported");
+          } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Int)) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuation.Real)) {
             AddXConstraint(expr.tok, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
@@ -13200,7 +13202,7 @@ namespace Microsoft.Dafny
           } else {
             reporter.Error(MessageSource.Resolver, expr, "type conversions are not supported to this type (got {0})", e.ToType);
           }
-          e.Type = e.ToType;
+          e.Type = e.Is ? Type.Bool : e.ToType;
         } else {
           e.Type = new InferredTypeProxy();
         }

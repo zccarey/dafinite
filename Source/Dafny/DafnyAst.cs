@@ -9992,12 +9992,14 @@ namespace Microsoft.Dafny {
   public class ConversionExpr : UnaryExpr
   {
     public readonly Type ToType;
-    public ConversionExpr(IToken tok, Expression expr, Type toType)
+    public readonly bool Is;
+    public ConversionExpr(IToken tok, Expression expr, Type toType, bool isIs = false)
       : base(tok, expr) {
       Contract.Requires(tok != null);
       Contract.Requires(expr != null);
       Contract.Requires(toType != null);
       ToType = toType;
+      Is = isIs;
     }
   }
 
