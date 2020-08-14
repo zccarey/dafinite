@@ -1,8 +1,7 @@
-// RUN: %dafny /compile:0 "%s" > "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:cs "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:js "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:go "%s" >> "%t"
-// RUN: %dafny /noVerify /compile:4 /compileTarget:java "%s" >> "%t"
+// RUN: dafny /rprint:foo-resolved.dfy /printMode:DllEmbed "%s" > "%t"
+// RUN: cat foo-resolved.dfy >> "%t"
+// RUN: dafny foo-resolved.dfy >> "%t"
+// RUN: rm foo-resolved.dfy
 // RUN: %diff "%s.expect" "%t"
 
 module Foo {

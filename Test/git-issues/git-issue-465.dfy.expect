@@ -1,14 +1,25 @@
+Dafny 2.3.0.10506
 
 Dafny program verifier finished with 0 verified, 0 errors
+Compiled assembly into git-issue-465.exe
+// Dafny 2.3.0.10506
+// Command Line Options: /rprint:foo-resolved.dfy /printMode:DllEmbed /Users/davidcok/yucca/dafny/Test/git-issues/git-issue-465.dfy
+
+
+module Foo {
+  datatype Bar = Bar
+}
+
+module Foo2 {
+
+  import Foo = Foo
+  const bar: Foo.Bar := Foo.Bar
+}
+method Main()
+{
+  print Foo2.bar, "\n";
+}
+Dafny 2.3.0.10506
 
 Dafny program verifier finished with 0 verified, 0 errors
-Foo_Compile.Bar.Bar
-
-Dafny program verifier finished with 0 verified, 0 errors
-Foo_Compile.Bar.Bar
-
-Dafny program verifier finished with 0 verified, 0 errors
-Foo_Compile.Bar.Bar
-
-Dafny program verifier finished with 0 verified, 0 errors
-Foo_Compile.Bar.Bar
+Compiled assembly into foo-resolved.exe

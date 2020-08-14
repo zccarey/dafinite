@@ -17,21 +17,21 @@ module _System {
 
   trait {:compile false} object { }
   /*-- non-null type
-  type {:axiom} object(==) = c: object? | c != null /*special witness*/
+  type {:axiom} object(==) = c: _System.object? | c != null /*special witness*/
   */
 
   class {:compile false} array<arg> {
     var Length: int  // immutable
   }
   /*-- non-null type
-  type {:axiom} array(==)<arg> = c: array?<arg> | c != null /*special witness*/
+  type {:axiom} array(==)<arg> = c: _System.array? | c != null /*special witness*/
   */
 
   class {:compile false} /*_#Func1*/ -T0 ~> +R {
     function requires(x0: T0): bool
       reads reads(x0)
 
-    function reads(x0: T0): set<object?>
+    function reads(x0: T0): set
       reads reads(x0)
   }
 
@@ -47,7 +47,7 @@ module _System {
     function requires(): bool
       reads reads()
 
-    function reads(): set<object?>
+    function reads(): set
       reads reads()
   }
 
@@ -77,9 +77,9 @@ module _System {
   }
 
   type _bv {
-    function method RotateLeft(w: nat): selftype
+    function method RotateLeft(w: _System.nat): selftype
 
-    function method RotateRight(w: nat): selftype
+    function method RotateRight(w: _System.nat): selftype
   }
 
   type map<T, U> {

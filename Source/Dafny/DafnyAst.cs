@@ -2825,6 +2825,9 @@ namespace Microsoft.Dafny {
         }
 #endif
         var s = Printer.ExprToString(NamePath);
+        if (parseAble) {
+          s = FullName ?? s;
+        }
         if (ResolvedClass != null) {
           var optionalTypeArgs = NamePath is NameSegment ? ((NameSegment)NamePath).OptTypeArguments : ((ExprDotName)NamePath).OptTypeArguments;
           if (optionalTypeArgs == null && TypeArgs != null && TypeArgs.Count != 0) {
