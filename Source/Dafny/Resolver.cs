@@ -3923,7 +3923,7 @@ namespace Microsoft.Dafny
       if (super is SetType || super is SeqType || super is MultiSetType || super is MapType) {
         return true;
       } else if (super is ArrowType) {
-        return false;
+        return true;
       } else if (super.IsObjectQ) {
         return false;
       } else {
@@ -11953,7 +11953,7 @@ namespace Microsoft.Dafny
             builtIns.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
             for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
-              args.Add(Type.Int);
+              args.Add(builtIns.Nat());
             }
             var arrowType = new ArrowType(rr.ElementInit.tok, builtIns.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
             string underscores;
