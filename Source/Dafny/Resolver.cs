@@ -5770,6 +5770,32 @@ namespace Microsoft.Dafny
             }
           }
 
+          if (e is SetComprehension) {
+            var bv = e.BoundVars[0];
+            var t = bv.Type;
+
+            // while (true) {
+            //   if (t is NewtypeDecl && t.AsNewtype.Constraint != null) {
+            //     t = t.AsNewtype.BaseType;
+            //     continue;
+            //   }
+            //
+            //   SubsetTypeDecl ts = t.AsTypeSynonym as SubsetTypeDecl;
+            //   if (ts != null && ts.Constraint == null) {
+            //     t = ts.Rhs;
+            //     continue;
+            //   }
+            //   break;
+            // }
+            //
+            // if (t is NewtypeDecl) {
+            //   resolver.reporter.Error(MessageSource.Resolver,bv,"Type of bound variable in a set comprehension may not be a constrained newtype: {0}", bv.Type);
+            // }
+            // if (t.AsTypeSynonym as SubsetTypeDecl != null) {
+            //   resolver.reporter.Error(MessageSource.Resolver,bv,"Type of bound variable in a set comprehension may not be a constrained subset type: {0}", bv.Type);
+            // }
+          }
+
           if (e is ExistsExpr && e.Range == null) {
             var binBody = ((ExistsExpr)e).Term as BinaryExpr;
             if (binBody != null && binBody.Op == BinaryExpr.Opcode.Imp) {  // check Op, not ResolvedOp, in order to distinguish ==> and <==

@@ -15713,6 +15713,27 @@ namespace Microsoft.Dafny {
           }
         } else if (expr is SetComprehension) {
           var e = (SetComprehension)expr;
+
+          Type declaredType = e.BoundVars[0].Type;
+          Type t = declaredType;
+          while (true) {
+              if (t is NewtypeDecl && t.AsNewtype.Constraint != null) {
+                t = t.AsNewtype.BaseType;
+                continue;
+              }
+            
+              SubsetTypeDecl ts = t.AsTypeSynonym as SubsetTypeDecl;
+              if (ts != null && ts.Constraint == null) {
+                t = ts.Rhs;
+                continue;
+              }
+
+              break;
+          }
+
+          if (t != declaredType) {
+            new LetExpr()
+          }
           List<bool> freeOfAlloc = null;
           if (FrugalHeapUseX) {
             freeOfAlloc = ComprehensionExpr.BoundedPool.HasBounds(e.Bounds, ComprehensionExpr.BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
