@@ -7,7 +7,7 @@ function type) optionally followed by an arrow and a range type.
 
 ````grammar
 DomainType =
-  ( BoolType_ | CharType_ | IntType_ | RealType_ 
+  ( BoolType_ | CharType_ | IntType_ | RealType_
   | OrdinalType_ | BitVectorType_ | ObjectType_
   | FiniteSetType_ | InfiniteSetType_ | MultisetType_
   | SequenceType_ | StringType_
@@ -47,7 +47,7 @@ access the members of an object, a reference to (that is, a _pointer_
 to or _object identity_ of) the object is _dereferenced_.
 
 The reference types are class types, traits and array types.
-Dafny supports both reference types that contain the special `null` value 
+Dafny supports both reference types that contain the special `null` value
 (_nullable types_) and reference types that do not (_non-null types_).
 
 ## Named Types
@@ -87,20 +87,20 @@ the language:  `false` and `true`.
 
 Type `bool` supports the following operations:
 
- operator           | description                        
+ operator           | description
 --------------------|------------------------------------
- `<==>`             | equivalence (if and only if)       
+ `<==>`             | equivalence (if and only if)
 --------------------|------------------------------------
- `==>`              | implication (implies)              
- `<==`              | reverse implication (follows from) 
+ `==>`              | implication (implies)
+ `<==`              | reverse implication (follows from)
 --------------------|------------------------------------
- `&&`               | conjunction (and)                  
- `||`               | disjunction (or)                   
+ `&&`               | conjunction (and)
+ `||`               | disjunction (or)
 --------------------|------------------------------------
- `==`               | equality                           
- `!=`               | disequality                        
+ `==`               | equality
+ `!=`               | disequality
 --------------------|------------------------------------
- `!`                | negation (not)                     
+ `!`                | negation (not)
 
 Negation is unary; the others are binary.  The table shows the operators
 in groups of increasing binding power, with equality binding stronger
@@ -232,7 +232,7 @@ to improve human readability of the literals.  For example:
 ```dafny
 1_000_000        // easier to read than 1000000
 0_12_345_6789    // strange but legal formatting of 123456789
-0x8000_0000      // same as 0x80000000 -- hex digits are 
+0x8000_0000      // same as 0x80000000 -- hex digits are
                  // often placed in groups of 4
 0.000_000_000_1  // same as 0.0000000001 -- 1 Angstrom
 ```
@@ -240,12 +240,12 @@ to improve human readability of the literals.  For example:
 In addition to equality and disequality, numeric types
 support the following relational operations:
 
- operator          | description                       
+ operator          | description
 -------------------|------------------------------------
-  `<`              | less than                          
-  `<=`             | at most                            
-  `>=`             | at least                          
-  `>`              | greater than                       
+  `<`              | less than
+  `<=`             | at most
+  `>=`             | at least
+  `>`              | greater than
 
 Like equality and disequality, these operators are chaining, as long
 as they are chained in the "same direction".  That is,
@@ -264,15 +264,15 @@ is not allowed.
 
 There are also operators on each numeric type:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
-  `+`            | addition (plus)                    
-  `-`            | subtraction (minus)                
+  `+`            | addition (plus)
+  `-`            | subtraction (minus)
 -----------------|------------------------------------
-  `*`            | multiplication (times)             
-  `/`            | division (divided by)              
-  `%`            | modulus (mod)                      
-  `-`            | negation (unary minus)             
+  `*`            | multiplication (times)
+  `/`            | division (divided by)
+  `%`            | modulus (mod)
+  `-`            | negation (unary minus)
 
 The binary operators are left associative, and they associate with
 each other in the two groups.  The groups are listed in order of
@@ -326,15 +326,15 @@ character literal, it is necessary to use an _escape sequence_.
 Escape sequences can also be used to write other characters.  The
 supported escape sequences are the following:
 
- escape sequence    | meaning                                              
+ escape sequence    | meaning
 --------------------|-------------------------------------------------------
- `\'`               | the character `'`                                      
- `\"`               | the character `"`                        
- `\\`               | the character `\`                                    
- `\0`               | the null character, same as `\u0000`                
- `\n`               | line feed                                             
- `\r`               | carriage return                                      
- `\t`               | horizontal tab                                      
+ `\'`               | the character `'`
+ `\"`               | the character `"`
+ `\\`               | the character `\`
+ `\0`               | the null character, same as `\u0000`
+ `\n`               | line feed
+ `\r`               | carriage return
+ `\t`               | horizontal tab
  `\u`_xxxx_         | universal character whose hexadecimal code is _xxxx_,  where each _x_ is a hexadecimal digit
 
 The escape sequence for a double quote is redundant, because
@@ -347,12 +347,12 @@ hexadecimal digits are case insensitive.
 Character values are ordered and can be compared using the standard
 relational operators:
 
- operator        | description                        
+ operator        | description
 -----------------|-----------------------------------
-  `<`              | less than                        
-  `<=`             | at most                         
-  `>=`             | at least                       
-  `>`              | greater than                  
+  `<`              | less than
+  `<=`             | at most
+  `>=`             | at least
+  `>`              | greater than
 
 Sequences of characters represent _strings_, as described in Section
 [#sec-strings].
@@ -458,12 +458,12 @@ section [#sec-set-comprehension-expressions].
 In addition to equality and disequality, set types
 support the following relational operations:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
- `<`             | proper subset                      
- `<=`            | subset                             
- `>=`            | superset                           
- `>`             | proper superset                    
+ `<`             | proper subset
+ `<=`            | subset
+ `>=`            | superset
+ `>`             | proper superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -471,14 +471,14 @@ chaining.
 Sets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `!!`          | disjointness                       
+ `!!`          | disjointness
 ---------------|------------------------------------
- `+`           | set union                          
- `-`           | set difference                     
+ `+`           | set union
+ `-`           | set difference
 ---------------|------------------------------------
- `*`           | set intersection                   
+ `*`           | set intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names.  The expression `A !! B`,
@@ -497,11 +497,11 @@ A * B == {} && (A + B) * C == {} && (A + B + C) * D == {}
 In addition, for any set `s` of type `set<T>` or `iset<T>` and any
 expression `e` of type `T`, sets support the following operations:
 
- expression          | description                        
+ expression          | description
 ---------------------|------------------------------------
- [\|s\|]{.monospace} | set cardinality                    
- `e in s`            | set membership                     
- `e !in s`           | set non-membership                 
+ [\|s\|]{.monospace} | set cardinality
+ `e in s`            | set membership
+ `e !in s`           | set non-membership
 
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
 
@@ -534,12 +534,12 @@ comprehension expression.
 In addition to equality and disequality, multiset types
 support the following relational operations:
 
- operator          | description                        
+ operator          | description
 -------------------|-----------------------------------
-  `<`              | proper multiset subset             
-  `<=`             | multiset subset                    
-  `>=`             | multiset superset                  
-  `>`              | proper multiset superset           
+  `<`              | proper multiset subset
+  `<=`             | multiset subset
+  `>=`             | multiset superset
+  `>`              | proper multiset superset
 
 Like the arithmetic relational operators, these operators are
 chaining.
@@ -547,14 +547,14 @@ chaining.
 Multisets support the following binary operators, listed in order of
 increasing binding power:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `!!`          | multiset disjointness              
+ `!!`          | multiset disjointness
 ---------------|------------------------------------
- `+`           | multiset union                     
- `-`           | multiset difference                
+ `+`           | multiset union
+ `-`           | multiset difference
 ---------------|------------------------------------
- `*`           | multiset intersection              
+ `*`           | multiset intersection
 
 The associativity rules of `+`, `-`, and `*` are like those of the
 arithmetic operators with the same names. The `+` operator
@@ -575,13 +575,13 @@ In addition, for any multiset `s` of type `multiset<T>`,
 expression `e` of type `T`, and non-negative integer-based numeric
 `n`, multisets support the following operations:
 
- expression          | description                              
+ expression          | description
 ---------------------|------------------------------------------
- `|s|`               | multiset cardinality                     
- `e in s`            | multiset membership                      
- `e !in s`           | multiset non-membership                  
- `s[e]`              | multiplicity of `e` in `s`               
- `s[e := n]`         | multiset update (change of multiplicity) 
+ `|s|`               | multiset cardinality
+ `e in s`            | multiset membership
+ `e !in s`           | multiset non-membership
+ `s[e]`              | multiplicity of `e` in `s`
+ `s[e := n]`         | multiset update (change of multiplicity)
 
 The expression `e in s` returns `true` if and only if `s[e] != 0`.
 The expression `e !in s` is a syntactic shorthand for `!(e in s)`.
@@ -619,10 +619,10 @@ comprehension expression.
 In addition to equality and disequality, sequence types
 support the following relational operations:
 
- operator        | description                        
+ operator        | description
 -----------------|------------------------------------
-  <              | proper prefix                      
-  <=             | prefix                             
+  <              | proper prefix
+  <=             | prefix
 
 Like the arithmetic relational operators, these operators are
 chaining.  Note the absence of `>` and `>=`.
@@ -630,9 +630,9 @@ chaining.  Note the absence of `>` and `>=`.
 ### Sequence Concatenation
 Sequences support the following binary operator:
 
- operator      | description                        
+ operator      | description
 ---------------|------------------------------------
- `+`           | concatenation                      
+ `+`           | concatenation
 
 Operator `+` is associative, like the arithmetic operator with the
 same name.
@@ -643,18 +643,18 @@ of type `T`, integer-based numeric `i` satisfying `0 <= i < |s|`, and
 integer-based numerics `lo` and `hi` satisfying
 `0 <= lo <= hi <= |s|`, sequences support the following operations:
 
- expression          | description                            
+ expression          | description
 ---------------------|----------------------------------------
- `|s|`               | sequence length                        
- `s[i]`              | sequence selection                     
- `s[i := e]`         | sequence update                        
- `e in s`            | sequence membership                    
- `e !in s`           | sequence non-membership                
- `s[lo..hi]`         | subsequence                            
- `s[lo..]`           | drop                                   
- `s[..hi]`           | take                                   
- `s[\(_slices_\)]`   | slice                                  
- `multiset(s)`       | sequence conversion to a `multiset<T>` 
+ `|s|`               | sequence length
+ `s[i]`              | sequence selection
+ `s[i := e]`         | sequence update
+ `e in s`            | sequence membership
+ `e !in s`           | sequence non-membership
+ `s[lo..hi]`         | subsequence
+ `s[lo..]`           | drop
+ `s[..hi]`           | take
+ `s[\(_slices_\)]`   | slice
+ `multiset(s)`       | sequence conversion to a `multiset<T>`
 
 Expression `s[i := e]` returns a sequence like `s`, except that the
 element at index `i` is `e`.  The expression `e in s` says there
@@ -791,19 +791,19 @@ any expression `t` of type `T`,
 any expression `u` of type `U`, and any `d` in the domain of `m` (that
 is, satisfying `d in m`), maps support the following operations:
 
- expression           | description                        
+ expression           | description
 ----------------------|------------------------------------
- `|fm|`               | map cardinality                    
- `m[d]`               | map selection                      
- `m[t := u]`          | map update                         
- `t in m`             | map domain membership              
- `t !in m`            | map domain non-membership          
- `fm.Keys`            | the domain of fm, that is, the set 
-                      |  of T values used askeys           
- `fm.Values`          | the range of fm, that is, the set  
-                      |  of U values present in the map   
- `fm.Items`           | set of pairs (t,u) of key-value    
-                      |  associations in the map           
+ `|fm|`               | map cardinality
+ `m[d]`               | map selection
+ `m[t := u]`          | map update
+ `t in m`             | map domain membership
+ `t !in m`            | map domain non-membership
+ `fm.Keys`            | the domain of fm, that is, the set
+                      |  of T values used askeys
+ `fm.Values`          | the range of fm, that is, the set
+                      |  of U values present in the map
+ `fm.Items`           | set of pairs (t,u) of key-value
+                      |  associations in the map
 
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
@@ -966,31 +966,31 @@ To define a function $f \colon X \to Y$ in terms of itself, one can
 write an equation like
 ~ Equation {#eq-general}
 <p style="text-align: center;">
-$$f = \mathcal{F}(f)$$  
+$$f = \mathcal{F}(f)$$
 </p>
 ~
 
 where $\mathcal{F}$ is a non-recursive function of type
-$(X \to Y) \to X \to Y$.  
+$(X \to Y) \to X \to Y$.
 Because it takes a function as an argument,
 $\mathcal{F}$
 is referred to as a _functor_ (or _functional_, but not to be
 confused by the category-theory notion of a functor).
-Throughout, I will assume that 
+Throughout, I will assume that
 $\mathcal{F}(f)$
 by itself is well defined,
-for example that it does not divide by zero.  I will also assume that 
+for example that it does not divide by zero.  I will also assume that
 $f$
 occurs
-only in fully applied calls in 
+only in fully applied calls in
 $\mathcal{F}(f)$;
  eta expansion can be applied to
-ensure this.  If 
+ensure this.  If
 $f$
-is a `boolean` function, that is, if 
+is a `boolean` function, that is, if
 $Y$
 is
-the type of booleans, then I call 
+the type of booleans, then I call
 $f$
 a _predicate_.
 
@@ -1051,7 +1051,7 @@ following, for any $n$:
 <p style="text-align: center;"> $$ 2 \leq n \;\Longrightarrow\; n-2 \ll n \;\wedge\; n-1 \ll n $$
 </p>
 
-Note that we are entitled to use the antecedent 
+Note that we are entitled to use the antecedent
 $2 \leq n$ because that is the
 condition under which the else branch in [#eq-fib] is evaluated.
 
@@ -1065,7 +1065,7 @@ ordinals defined by the following equation:
 
 <p style="text-align: center;">
 $$
-\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p) 
+\mathit{P}\_\downarrow = P(o) \;\wedge\; \forall p \bullet\; p \ll o \;\Longrightarrow\; \mathit{P}\_\downarrow(p)
 $$
 </p>
 
@@ -1141,7 +1141,7 @@ where $x$ ranges over the integers:
 ~ Equation {#eq-EvenNat}
 <p style="text-align: center;">
 $$
-g(x) = (x = 0 \:\vee\: g(x-2)) 
+g(x) = (x = 0 \:\vee\: g(x-2))
 $$
 </p>
 ~
@@ -1157,7 +1157,7 @@ $$
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; w\textrm{ even}\} \\
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; (0 \leq w \;\wedge\; w\textrm{ even}) \:\vee\: w\textrm{ odd}\} \\
   g(x) \;\;\equiv\;\;{}&  x \in \{w \;|\; \mathit{true}\}
-  \end{array} 
+  \end{array}
 $$
 </p>
 
@@ -1186,7 +1186,7 @@ line is used:
   \qquad\qquad
     \genfrac{}{}{1.2pt}0{g(x-2)}{g(x)}$
 
-In this case, proof trees are allowed to be infinite. 
+In this case, proof trees are allowed to be infinite.
 For example, the left-hand example below shows a finite proof tree that uses the rules of [#g-ind-rule] to establish $g(6)$.  On the right is a partial depiction of an infinite proof tree that uses the rules of [#g-coind-rule] to establish $g(1)$.
 
 <p style="text-align: center;">
@@ -1232,7 +1232,7 @@ where $k$ ranges over the natural numbers:
    { {}^{\flat}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{false}         & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0 
+      \mathcal{F}({ {}^{\flat}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
      \right\} $$.</p>
 ~
@@ -1241,7 +1241,7 @@ where $k$ ranges over the natural numbers:
    { {}^{\sharp}\!f}_k(x) = \left\{
     \begin{array}{ll}
       \mathit{true}          & \textrm{if } k = 0 \\
-      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0 
+      \mathcal{F}({ {}^{\sharp}\!f}_{k-1})(x) & \textrm{if } k > 0
     \end{array}
     \right\} $$.</p>
 ~
@@ -1927,11 +1927,11 @@ Note that when there is no body, Dafny assumes that the *ensures*
 clauses are true without proof.
 
 ### Constructors
-To write structured object-oriented programs, one often relies on 
+To write structured object-oriented programs, one often relies on
 objects being constructed only in certain ways.  For this purpose, Dafny
 provides _constructor (method)s_, which are a restricted form of
 initialization methods.  A constructor is declared with the keyword
-`constructor` instead of `method`.  
+`constructor` instead of `method`.
 When a class contains a
 constructor, every call to `new` for a class must be accompanied
 by a call to one of its constructors.  Moreover, a constructor
@@ -1942,27 +1942,27 @@ declare no constructors or one or more constructors.
 
 #### Classes with no explicit constructors
 
-A class that declares no constructors has a default constructor created 
+A class that declares no constructors has a default constructor created
 for it. This constructor is called with the syntax
 ```dafny
 c := new C;
 ```
 This constructor simply initializes the fields of the class.
-The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value. 
+The declaration of a const field may include an initializer, that is, a right-hand side (RHS) that specifies the constant's value.
 The RHS of a const field may depend on other constant fields, but circular dependencies are not allowed.
 
 This constructor sets each class field to an arbitrary value
-of the field's type if the field declaration has no initializer 
-and to the value of the initializer expression if it does declare an initializer. 
+of the field's type if the field declaration has no initializer
+and to the value of the initializer expression if it does declare an initializer.
 For the purposes of proving Dafny programs
-correct, assigning an arbitrary initial value means that the program must 
+correct, assigning an arbitrary initial value means that the program must
 be correct for any initial value. Compiled, executable versions of the program
-may use a specific initial value 
+may use a specific initial value
 (for example, but not necessarily, a zero-equivalent value).
 
 #### Classes with one or more constructors
- 
-When one or more constructors are explicitly declared, they are named, 
+
+When one or more constructors are explicitly declared, they are named,
 which promotes using names like `InitFromList` above.
 Constructors must have distinct names, even if their signatures are different.
 Many classes have just
@@ -1988,23 +1988,23 @@ dropping the "`.`".
 
 #### Two-phase constructors
 
-The body of a constructor contains two sections, 
+The body of a constructor contains two sections,
 an initialization phase and a post-initialization phase, separated by a `new;` statement.
-If there is no `new;` statement, the entire body is the initialization phase. 
-The initialization phase is intended to initialize field variables. 
+If there is no `new;` statement, the entire body is the initialization phase.
+The initialization phase is intended to initialize field variables.
 In this phase, uses of the object reference `this` are restricted;
 a program may use `this`
 
- - as the receiver on the LHS, 
- - as the entire RHS of an assignment to a field of `this`, 
+ - as the receiver on the LHS,
+ - as the entire RHS of an assignment to a field of `this`,
  - and as a member of a set on the RHS that is being assigned to a field of `this`.
 
-Furthermore, `const` fields may only be assigned to in an initialization phase 
+Furthermore, `const` fields may only be assigned to in an initialization phase
 (and may be assigned to more than once)
 of their enclosing class, and then only if they do not already have an initialization
 value in their declaration.
 
-There are no restrictions on expressions or statements in the post-initialization phase. 
+There are no restrictions on expressions or statements in the post-initialization phase.
 
 ### Lemmas
 Sometimes there are steps of logic required to prove a program correct,
@@ -2145,13 +2145,13 @@ The following table summarizes where the function is transparent.
 The module referenced in the table is the module in which the
 function is defined.
 
- Protected? | `{:opaque}`? | Transparent | Transparent 
-            |              | Inside      | Outside     
-            |              | Module      | Module      
+ Protected? | `{:opaque}`? | Transparent | Transparent
+            |              | Inside      | Outside
+            |              | Module      | Module
 :----------:|:------------:|:-----------:|:-----------:
- N          | N            | Y           | Y           
- Y          | N            | Y           | N           
- N          | Y            | N           | N           
+ N          | N            | Y           | Y
+ Y          | N            | Y           | N
+ N          | Y            | N           | N
 
 When `{:opaque}` is specified for function `g`, `g` is opaque,
 however the lemma `reveal_g` is available to give the semantics
@@ -2331,12 +2331,12 @@ consecutive elements into a sequence.  For any array `a` of type
 `0 <= lo <= hi <= a.Length`, the following operations each yields a
 `seq<T>`:
 
- expression          | description                        
+ expression          | description
 ---------------------|------------------------------------
- `a[lo..hi]`         | subarray conversion to sequence    
- `a[lo..]`           | drop                               
- `a[..hi]`           | take                               
- `a[..]`             | array conversion to sequence       
+ `a[lo..hi]`         | subarray conversion to sequence
+ `a[lo..]`           | drop
+ `a[..hi]`           | take
+ `a[..]`             | array conversion to sequence
 
 The expression `a[lo..hi]` takes the first `hi` elements of the array,
 then drops the first `lo` elements thereof and returns what remains as
@@ -2833,13 +2833,13 @@ given datatype value using the _datatype update_ expression.  For any
 a parameter (destructor) named `f` of type `T`, and any expression `t`
 of type `T`,
 ```dafny
-d[f := t]
+d.(f := t)
 ```
 constructs a value like `d` but whose `f` parameter is `t`.  The
 operation requires that `d` satisfies `C?`.  For example, the
 following equality holds:
 ```dafny
-Cons(4, Nil)[tail := Cons(3, Nil)] == Cons(4, Cons(3, Nil))
+Cons(4, Nil).(tail := Cons(3, Nil)) == Cons(4, Cons(3, Nil))
 ```
 
 The datatype update expression also accepts multiple field
@@ -2847,7 +2847,7 @@ names, provided these are distinct. For example, a node of some
 inductive datatype for trees may be updated as follows:
 
 ```dafny
-node[left := L, right := R]
+node.(left := L, right := R)
 ```
 
 ## Tuple types
@@ -3435,6 +3435,12 @@ section [#sec-nativetype].
 
 There is a restriction that the value `0` must be part of every
 newtype.[^fn-newtype-zero]
+
+Furthermore, for the compiler to be able to make an appropriate choice of
+representation, the constants in the defining expression as shown above must be
+known constants at compile-time. They need not be numeric literals; combinations
+of basic operations and symbolic constants are also allowed as described
+in [Section: Compile-Time Constants](#sec-compile-time-constants).
 
 [^fn-newtype-zero]: The restriction is due to a current limitation in
     the compiler.  This will change in the future and will also open
