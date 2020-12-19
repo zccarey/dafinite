@@ -2081,6 +2081,11 @@ namespace Microsoft.Dafny
               if (m is Function || m is Method || m is ConstantField) {
                 sig.StaticMembers[m.Name] = m;
               }
+
+              if (toplevels.ContainsKey(m.Name)) {
+                reporter.Error(MessageSource.Resolver, m.tok,
+                  $"duplicate declaration for name {m.Name}");
+              }
             }
           }
 
