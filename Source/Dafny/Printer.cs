@@ -350,66 +350,79 @@ namespace Microsoft.Dafny {
             wr.WriteLine("}");
           }
 
+        } else if (d is ExportDecl e) {
+          wr.WriteLine();
+          Indent(indent);
+          if (!e.IsDefault) {
+            wr.Write("export {0}", e.Name);
+          } else {
+            wr.Write("export");
+          }
+
+          if (e.IsRefining) {
+            wr.Write(" ...");
+          }
+
+          if (e.Extends.Count > 0) {
+            wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
+          }
+          wr.WriteLine();
+          PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
+          wr.WriteLine();
+
         } else if (d is ModuleDecl) {
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl) {
-            LiteralModuleDecl modDecl = ((LiteralModuleDecl)d);
+            LiteralModuleDecl modDecl = ((LiteralModuleDecl) d);
             VisibilityScope scope = null;
-            if (modDecl.Signature != null){
+            if (modDecl.Signature != null) {
               scope = modDecl.Signature.VisibilityScope;
             }
+
             PrintModuleDefinition(modDecl.ModuleDef, scope, indent, prefixIds, fileBeingPrinted);
           } else if (d is AliasModuleDecl) {
-            var dd = (AliasModuleDecl)d;
+            var dd = (AliasModuleDecl) d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) wr.Write(" opened");
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
+
             wr.Write(" {0} ", dd.Name);
             wr.Write("= {0}", dd.TargetQId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+
             wr.WriteLine();
           } else if (d is AbstractModuleDecl) {
-            var dd = (AbstractModuleDecl)d;
+            var dd = (AbstractModuleDecl) d;
 
-            wr.Write("import"); if (dd.Opened) wr.Write(" opened");
+            wr.Write("import");
+            if (dd.Opened) wr.Write(" opened");
             if (dd.ResolvedHash.HasValue && this.printMode == DafnyOptions.PrintModes.DllEmbed) {
               wr.Write(" /*");
               wr.Write(dd.ResolvedHash);
               wr.Write("*/");
             }
+
             wr.Write(" {0} ", dd.Name);
-            wr.Write(": {0}", dd.Path.ToString());
+            wr.Write(": {0}", dd.QId.ToString());
             if (dd.Exports.Count > 0) {
               wr.Write("`{{{0}}}", Util.Comma(dd.Exports, id => id.val));
             }
+
             wr.WriteLine();
 
-          } else if (d is ModuleExportDecl) {
-            ModuleExportDecl e = (ModuleExportDecl)d;
-            if (!e.IsDefault) {
-              wr.Write("export {0}", e.Name);
-            } else {
-              wr.Write("export");
-            }
-
-            if (e.IsRefining) {
-              wr.Write(" ...");
-            }
-            if (e.Extends.Count > 0) wr.Write(" extends {0}", Util.Comma(e.Extends, id => id.val));
-            wr.WriteLine();
-            PrintModuleExportDecl(e, indent + IndentAmount, fileBeingPrinted);
-            wr.WriteLine();
+          } else {
+            Contract.Assert(false); // unexpected ModuleDecl
           }
-
         } else {
-          Contract.Assert(false);  // unexpected TopLevelDecl
+          Contract.Assert(false); // unexpected TopLevelDecl
         }
       }
     }
@@ -436,7 +449,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void PrintModuleExportDecl(ModuleExportDecl m, int indent, string fileBeingPrinted) {
+    void PrintModuleExportDecl(ExportDecl m, int indent, string fileBeingPrinted) {
       Contract.Requires(m != null);
 
       if (m.RevealAll) {
