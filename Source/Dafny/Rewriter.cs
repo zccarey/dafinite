@@ -1423,7 +1423,7 @@ namespace Microsoft.Dafny
       var declarations = m.TopLevelDecls;
 
       foreach (var d in declarations) {
-        if (d is ModuleExportDecl me) {
+        if (d is ExportDecl me) {
           var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
 
           HashSet<string> explicitlyRevealedTopLevelIDs = null;

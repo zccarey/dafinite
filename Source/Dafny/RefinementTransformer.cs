@@ -179,7 +179,7 @@ namespace Microsoft.Dafny
       Contract.Assert(moduleUnderConstruction == m);  // this should be as it was set earlier in this method
     }
 
-    private void MergeModuleExports(ModuleExportDecl nw, ModuleExportDecl d) {
+    private void MergeModuleExports(ExportDecl nw, ExportDecl d) {
       if (nw.IsDefault != d.IsDefault) {
         reporter.Error(MessageSource.RefinementTransformer, nw, "can't change if a module export is default ({0})", nw.Name);
       }
@@ -189,15 +189,16 @@ namespace Microsoft.Dafny
     }
 
     private void MergeTopLevelDecls(ModuleDefinition m, TopLevelDecl nw, TopLevelDecl d, int index) {
-      if (d is ModuleDecl) {
+      if (d is ExportDecl) {
+        if (!(nw is ExportDecl)) {
+          reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export",
+            nw.Name);
+        } else {
+          MergeModuleExports((ExportDecl) nw, (ExportDecl) d);
+        }
+      } else if (d is ModuleDecl) {
         if (!(nw is ModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) must refine another module", nw.Name);
-        } else if (d is ModuleExportDecl) {
-          if (!(nw is ModuleExportDecl)) {
-            reporter.Error(MessageSource.RefinementTransformer, nw, "a module export ({0}) must refine another export", nw.Name);
-          } else {
-            MergeModuleExports((ModuleExportDecl)nw,(ModuleExportDecl)d);
-          }
         } else if (!(d is AbstractModuleDecl)) {
           reporter.Error(MessageSource.RefinementTransformer, nw, "a module ({0}) can only refine a module facade", nw.Name);
         } else {
@@ -1499,12 +1500,12 @@ namespace Microsoft.Dafny
     }
     public override TopLevelDecl CloneDeclaration(TopLevelDecl d, ModuleDefinition m) {
       var dd = base.CloneDeclaration(d, m);
-      if (dd is ModuleExportDecl ddex) {
+      if (dd is ExportDecl ddex) {
         // In refinement cloning, a default export set from the parent should, in the
         // refining module, retain its name but not be default, unless the refining module has the same name
-        ModuleExportDecl dex = d as ModuleExportDecl;
+        ExportDecl dex = d as ExportDecl;
         if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ModuleExportDecl(dex.tok, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+          ddex = new ExportDecl(dex.tok, d.Name, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

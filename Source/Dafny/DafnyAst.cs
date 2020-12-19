@@ -3565,39 +3565,50 @@ namespace Microsoft.Dafny {
   // Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
   public class AbstractModuleDecl : ModuleDecl
   {
-    public ModuleDecl Root; // TODO: THis duplicates Path.Decl
-    public readonly ModuleQualifiedId Path;
+    public readonly ModuleQualifiedId QId;
     public readonly List<IToken> Exports; // list of exports sets
     public ModuleDecl CompileRoot;
     public ModuleSignature OriginalSignature;
 
-    public AbstractModuleDecl(ModuleQualifiedId path, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
+    public AbstractModuleDecl(ModuleQualifiedId qid, IToken name, ModuleDefinition parent, bool opened, List<IToken> exports)
       : base(name, name.val, parent, opened, false) {
-      Contract.Requires(path != null && path.Path.Count > 0);
+      Contract.Requires(qid != null && qid.Path.Count > 0);
       Contract.Requires(exports != null);
 
-      Path = path;
+      QId = qid;
       Exports = exports;
-      Root = null;
     }
     public override object Dereference() { return this; }
   }
 
   // Represents the exports of a module.
-  public class ModuleExportDecl : ModuleDecl
+  public class ExportDecl : ModuleDecl
   {
+    // public override string WhatKind { get { return "export"; } }
     public readonly bool IsDefault;
     public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
     public List<IToken> Extends; // list of exports that are extended
-    public readonly List<ModuleExportDecl> ExtendDecls = new List<ModuleExportDecl>(); // fill in by the resolver
+    public readonly List<ExportDecl> ExtendDecls = new List<ExportDecl>(); // fill in by the resolver
     public readonly HashSet<Tuple<Declaration, bool>> ExportDecls = new HashSet<Tuple<Declaration, bool>>(); // fill in by the resolver
     public bool RevealAll; // only kept for initial rewriting, then discarded
     public bool ProvideAll;
 
     public readonly VisibilityScope ThisScope;
-    public ModuleExportDecl(IToken tok, ModuleDefinition parent,
+    public ExportDecl(IToken tok, ModuleDefinition parent,
       List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
       : base(tok, isDefault ? parent.Name : tok.val, parent, false, isRefining) {
+      Contract.Requires(exports != null);
+      IsDefault = isDefault;
+      Exports = exports;
+      Extends = extends;
+      ProvideAll = provideAll;
+      RevealAll = revealAll;
+      ThisScope = new VisibilityScope(this.FullCompileName);
+    }
+
+    public ExportDecl(IToken tok, string name, ModuleDefinition parent,
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      : base(tok, name, parent, false, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
       Exports = exports;
@@ -3672,7 +3683,7 @@ namespace Microsoft.Dafny {
   public class ModuleSignature {
     public  VisibilityScope VisibilityScope = null;
     public readonly Dictionary<string, TopLevelDecl> TopLevels = new Dictionary<string, TopLevelDecl>();
-    public readonly Dictionary<string, ModuleExportDecl> ExportSets = new Dictionary<string, ModuleExportDecl>();
+    public readonly Dictionary<string, ExportDecl> ExportSets = new Dictionary<string, ExportDecl>();
     public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new Dictionary<string, Tuple<DatatypeCtor, bool>>();
     public readonly Dictionary<string, MemberDecl> StaticMembers = new Dictionary<string, MemberDecl>();
     public ModuleDefinition ModuleDef = null; // Note: this is null if this signature does not correspond to a specific definition (i.e.
@@ -3803,37 +3814,6 @@ namespace Microsoft.Dafny {
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
     public readonly bool IsToBeVerified;
     public readonly bool IsToBeCompiled;
-
-    // private ModuleSignature refinementBaseSig; // module signature of the refinementBase.
-    // public ModuleSignature RefinementBaseSig {
-    //   get {
-    //     return refinementBaseSig;
-    //   }
-    //
-    //   set {
-    //     // the refinementBase member may only be changed once.
-    //     if (null != refinementBaseSig) {
-    //       throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-    //     }
-    //     refinementBaseSig = value;
-    //   }
-    // }
-
-    // private ModuleDefinition refinementBase; // filled in during resolution via RefinementBase property (null if no refinement base yet or at all).
-    //
-    // public ModuleDefinition RefinementBase {
-    //     get {
-    //        return refinementBase;
-    //     }
-    //
-    //     set {
-    //       // the refinementBase member may only be changed once.
-    //       if (null != refinementBase) {
-    //           throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-    //       }
-    //       refinementBase = value;
-    //     }
-    // }
 
     public int? ResolvedHash { get; set; }
 

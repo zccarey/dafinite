@@ -481,7 +481,7 @@ namespace Microsoft.Dafny
 
           var errorCount = reporter.Count(ErrorLevel.Error);
           if (m.RefinementQId != null) {
-            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId.Path, reporter);
+            ModuleDecl md = ResolveModuleQualifiedId(m.RefinementQId.Root, m.RefinementQId, reporter);
             m.RefinementQId.Set(md); // If module is not found, md is null and an error message has been emitted
           }
 
@@ -551,29 +551,27 @@ namespace Microsoft.Dafny
             Type.EnableScopes();
             reporter.ErrorsOnly = oldErrorsOnly;
           }
-        } else if (decl is AliasModuleDecl) {
-          var alias = (AliasModuleDecl) decl;
+        } else if (decl is AliasModuleDecl alias) {
           // resolve the path
           ModuleSignature p;
-          if (ResolveExport(alias, alias.TargetQId.Root, alias.EnclosingModuleDefinition, alias.TargetQId.Path, alias.Exports, out p, reporter)) {
+          if (ResolveExport(alias, alias.EnclosingModuleDefinition, alias.TargetQId, alias.Exports, out p, reporter)) {
             if (alias.Signature == null) {
               alias.Signature = p;
             }
           } else {
             alias.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
-        } else if (decl is AbstractModuleDecl) {
-          var abs = (AbstractModuleDecl) decl;
+        } else if (decl is AbstractModuleDecl abs) {
           ModuleSignature p;
-          if (ResolveExport(abs, abs.Root, abs.EnclosingModuleDefinition, abs.Path.Path, abs.Exports, out p, reporter)) {
+          if (ResolveExport(abs, abs.EnclosingModuleDefinition, abs.QId, abs.Exports, out p, reporter)) {
             abs.OriginalSignature = p;
             abs.Signature = MakeAbstractSignature(p, abs.FullCompileName, abs.Height, prog.ModuleSigs,
               compilationModuleClones);
           } else {
             abs.Signature = new ModuleSignature(); // there was an error, give it a valid but empty signature
           }
-        } else if (decl is ModuleExportDecl) {
-          ((ModuleExportDecl) decl).SetupDefaultSignature();
+        } else if (decl is ExportDecl ed) {
+          ed.SetupDefaultSignature();
 
           Contract.Assert(decl.Signature != null);
           Contract.Assert(decl.Signature.VisibilityScope != null);
@@ -1056,13 +1054,13 @@ namespace Microsoft.Dafny
     private void ResolveModuleExport(LiteralModuleDecl literalDecl, ModuleSignature sig) {
       ModuleDefinition m = literalDecl.ModuleDef;
       literalDecl.DefaultExport = sig;
-      Graph<ModuleExportDecl> exportDependencies = new Graph<ModuleExportDecl>();
+      Graph<ExportDecl> exportDependencies = new Graph<ExportDecl>();
       foreach (TopLevelDecl toplevel in m.TopLevelDecls) {
-        if (toplevel is ModuleExportDecl) {
-          ModuleExportDecl d = (ModuleExportDecl) toplevel;
+        if (toplevel is ExportDecl) {
+          ExportDecl d = (ExportDecl) toplevel;
           exportDependencies.AddVertex(d);
           foreach (IToken s in d.Extends) {
-            ModuleExportDecl extend;
+            ExportDecl extend;
             if (sig.ExportSets.TryGetValue(s.val, out extend)) {
               d.ExtendDecls.Add(extend);
               exportDependencies.AddEdge(d, extend);
@@ -1086,8 +1084,8 @@ namespace Microsoft.Dafny
       } // give up on trying to resolve anything else
 
       // fill in the exports for the extends.
-      List<ModuleExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
-      ModuleExportDecl defaultExport = null;
+      List<ExportDecl> sortedExportDecls = exportDependencies.TopologicallySortedComponents();
+      ExportDecl defaultExport = null;
       TopLevelDecl defaultClass;
 
       sig.TopLevels.TryGetValue("_default", out defaultClass);
@@ -1222,7 +1220,7 @@ namespace Microsoft.Dafny
         }
       }
 
-      foreach (ModuleExportDecl decl in sortedExportDecls) {
+      foreach (ExportDecl decl in sortedExportDecls) {
         if (decl.IsDefault) {
           if (defaultExport == null) {
             defaultExport = decl;
@@ -1234,7 +1232,7 @@ namespace Microsoft.Dafny
 
         // fill in export signature
         ModuleSignature signature = decl.Signature;
-        signature.ModuleDef = m;
+        if (signature != null) signature.ModuleDef = m;
 
         foreach (var top in sig.TopLevels) {
           if (!top.Value.CanBeExported() || !top.Value.IsVisibleInScope(signature.VisibilityScope)) {
@@ -1274,8 +1272,7 @@ namespace Microsoft.Dafny
 
       foreach (var s in sigs) {
         foreach (var decl in s.TopLevels) {
-          if (decl.Value is ModuleDecl && !(decl.Value is ModuleExportDecl)) {
-            var modDecl = (ModuleDecl) decl.Value;
+          if (decl.Value is ModuleDecl modDecl && !(decl.Value is ExportDecl)) {
             s.VisibilityScope.Augment(modDecl.AccessibleSignature().VisibilityScope);
           }
         }
@@ -1373,10 +1370,11 @@ namespace Microsoft.Dafny
     private void CheckModuleExportConsistency(ModuleDefinition m) {
       var oldModuleInfo = moduleInfo;
       foreach (var top in m.TopLevelDecls) {
-        if (!(top is ModuleExportDecl))
+        if (!(top is ExportDecl)) {
           continue;
+        }
 
-        ModuleExportDecl decl = (ModuleExportDecl) top;
+        ExportDecl decl = (ExportDecl) top;
         var prevErrors = reporter.Count(ErrorLevel.Error);
 
         foreach (var export in decl.Exports) {
@@ -1628,7 +1626,7 @@ namespace Microsoft.Dafny
           dependencies.AddEdge(decl, d);
           var subbindings = bindings.SubBindings(d.Name);
           ProcessDependencies(d, subbindings ?? bindings, dependencies);
-          if (!m.IsAbstract && d is AbstractModuleDecl && ((AbstractModuleDecl) d).Root != null) {
+          if (!m.IsAbstract && d is AbstractModuleDecl && ((AbstractModuleDecl) d).QId?.Root != null) {
             reporter.Error(MessageSource.Resolver, d.tok,
               "The abstract import named {0} (using :) may only be used in an abstract module declaration",
               d.Name);
@@ -1657,13 +1655,12 @@ namespace Microsoft.Dafny
       } else if (moduleDecl is AbstractModuleDecl) {
         var abs = moduleDecl as AbstractModuleDecl;
         ModuleDecl root;
-        if (!bindings.TryLookupFilter(abs.Path.rootToken(), out root,
+        if (!bindings.TryLookupFilter(abs.QId.rootToken(), out root,
           m => abs != m && (((abs.EnclosingModuleDefinition == m.EnclosingModuleDefinition) && (abs.Exports.Count == 0)) || m is LiteralModuleDecl)))
-          reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.Path.Path));
+          reporter.Error(MessageSource.Resolver, abs.tok, ModuleNotFoundErrorMessage(0, abs.QId.Path));
         else {
           dependencies.AddEdge(moduleDecl, root);
-          abs.Root = root;
-        }
+          abs.QId.SetRoot(root);        }
       }
     }
 
@@ -1868,7 +1865,7 @@ namespace Microsoft.Dafny
         {
           TopLevelDecl registerThisDecl = null;
           string registerUnderThisName = null;
-          if (d is ModuleExportDecl export) {
+          if (d is ExportDecl export) {
             if (sig.ExportSets.ContainsKey(d.Name)) {
               reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
             } else {
@@ -1894,7 +1891,9 @@ namespace Microsoft.Dafny
             sig.TopLevels[registerUnderThisName] = registerThisDecl;
           }
         }
-        if (d is ModuleDecl) {
+        if (d is ExportDecl) {
+          // nothing to do
+        } else if (d is ModuleDecl) {
           // nothing to do
         } else if (d is TypeSynonymDecl) {
           // nothing more to register
@@ -2345,7 +2344,7 @@ namespace Microsoft.Dafny
         var abs = (AbstractModuleDecl) d;
         var sig = MakeAbstractSignature(abs.OriginalSignature, Name + "." + abs.Name, abs.Height, mods,
           compilationModuleClones);
-        var a = new AbstractModuleDecl(abs.Path, abs.tok, m, abs.Opened, abs.Exports);
+        var a = new AbstractModuleDecl(abs.QId, abs.tok, m, abs.Opened, abs.Exports);
         a.Signature = sig;
         a.OriginalSignature = abs.OriginalSignature;
         return a;
@@ -2357,13 +2356,15 @@ namespace Microsoft.Dafny
     // Returns the resolved Module declaration corresponding to the qualified module id
     // Requires the root to have been resolved
     // Issues an error and returns null if the path is not valid
-    public ModuleDecl ResolveModuleQualifiedId(ModuleDecl root, List<IToken> Path, ErrorReporter reporter) {
+    public ModuleDecl ResolveModuleQualifiedId(ModuleDecl root, ModuleQualifiedId qid, ErrorReporter reporter) {
 
-      Contract.Requires(Path != null);
-      Contract.Requires(Path.Count > 0);
+      Contract.Requires(qid != null);
+      Contract.Requires(qid.Path.Count > 0);
 
       ModuleDecl decl = root;
       ModuleSignature p;
+      List<IToken> Path = qid.Path;
+
       for (int k = 1; k < Path.Count; k++) {
         if (decl is LiteralModuleDecl) {
           p = ((LiteralModuleDecl) decl).DefaultExport;
@@ -2399,13 +2400,13 @@ namespace Microsoft.Dafny
     }
 
 
-    public bool ResolveExport(ModuleDecl alias, ModuleDecl root, ModuleDefinition parent, List<IToken> Path,
+    public bool ResolveExport(ModuleDecl alias, ModuleDefinition parent, ModuleQualifiedId qid,
       List<IToken> Exports, out ModuleSignature p, ErrorReporter reporter) {
-      Contract.Requires(Path != null);
-      Contract.Requires(Path.Count > 0);
+      Contract.Requires(qid != null);
+      Contract.Requires(qid.Path.Count > 0);
       Contract.Requires(Exports != null);
 
-      ModuleDecl decl = ResolveModuleQualifiedId(root, Path, reporter);
+      ModuleDecl decl = ResolveModuleQualifiedId(qid.Root, qid, reporter);
       if (decl == null) {
         p = null;
         return false;
@@ -2422,13 +2423,13 @@ namespace Microsoft.Dafny
           var m = p.ExportSets.GetValueOrDefault(decl.Name, null);
           if (m == null) {
             // no default view is specified.
-            reporter.Error(MessageSource.Resolver, Path[0], "no default export set declared in module: {0}", decl.Name);
+            reporter.Error(MessageSource.Resolver, qid.rootToken(), "no default export set declared in module: {0}", qid.ToString());
             return false;
           }
           p = m.AccessibleSignature();
         }
       } else {
-        ModuleExportDecl pp;
+        ExportDecl pp;
         if (decl.Signature.ExportSets.TryGetValue(Exports[0].val, out pp)) {
           p = pp.AccessibleSignature();
         } else {
@@ -2485,7 +2486,7 @@ namespace Microsoft.Dafny
 
       /* Augment the scoping environment for the current module*/
       foreach (TopLevelDecl d in declarations) {
-        if (d is ModuleDecl && !(d is ModuleExportDecl)) {
+        if (d is ModuleDecl && !(d is ExportDecl)) {
           var decl = (ModuleDecl)d;
           moduleInfo.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
           sig.VisibilityScope.Augment(decl.AccessibleSignature().VisibilityScope);
@@ -2521,7 +2522,9 @@ namespace Microsoft.Dafny
           });
           ResolveClassMemberTypes(dd);
         } else if (d is IteratorDecl) {
-          ResolveIteratorSignature((IteratorDecl)d);
+          ResolveIteratorSignature((IteratorDecl) d);
+        } else if (d is ExportDecl) {
+          // do nothing
         } else if (d is ModuleDecl) {
           var decl = (ModuleDecl)d;
           if (!def.IsAbstract && decl is AliasModuleDecl am && decl.Signature.IsAbstract) {

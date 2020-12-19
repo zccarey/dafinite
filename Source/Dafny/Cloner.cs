@@ -43,86 +43,73 @@ namespace Microsoft.Dafny
       Contract.Requires(d != null);
       Contract.Requires(m != null);
 
-      if (d is OpaqueTypeDecl) {
-        var dd = (OpaqueTypeDecl)d;
-        return new OpaqueTypeDecl(Tok(dd.tok), dd.Name, m, CloneTPChar(dd.TheType.Characteristics), dd.TypeArgs.ConvertAll(CloneTypeParam), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes));
-      } else if (d is SubsetTypeDecl) {
+      if (d is OpaqueTypeDecl otd) {
+        return new OpaqueTypeDecl(Tok(otd.tok), otd.Name, m, CloneTPChar(otd.TheType.Characteristics), otd.TypeArgs.ConvertAll(CloneTypeParam), otd.Members.ConvertAll(CloneMember), CloneAttributes(otd.Attributes));
+      } else if (d is SubsetTypeDecl std) {
         Contract.Assume(!(d is NonNullTypeDecl));  // don't clone the non-null type declaration; close the class, which will create a new non-null type declaration
-        var dd = (SubsetTypeDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new SubsetTypeDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), CloneAttributes(dd.Attributes));
-      } else if (d is TypeSynonymDecl) {
-        var dd = (TypeSynonymDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Tok(dd.tok), dd.Name, CloneTPChar(dd.Characteristics), tps, m, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
-      } else if (d is NewtypeDecl) {
-        var dd = (NewtypeDecl)d;
-          if (dd.Var == null) {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneType(dd.BaseType), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
-          } else {
-            return new NewtypeDecl(Tok(dd.tok), dd.Name, m, CloneBoundVar(dd.Var), CloneExpr(dd.Constraint), dd.WitnessKind, CloneExpr(dd.Witness), dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
-          }
-      } else if (d is TupleTypeDecl) {
-        var dd = (TupleTypeDecl)d;
-        return new TupleTypeDecl(dd.Dims, dd.EnclosingModuleDefinition, dd.Attributes);
-      } else if (d is IndDatatypeDecl) {
-        var dd = (IndDatatypeDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new IndDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
+        var tps = std.TypeArgs.ConvertAll(CloneTypeParam);
+        return new SubsetTypeDecl(Tok(std.tok), std.Name, CloneTPChar(std.Characteristics), tps, m, CloneBoundVar(std.Var), CloneExpr(std.Constraint), std.WitnessKind, CloneExpr(std.Witness), CloneAttributes(std.Attributes));
+      } else if (d is TypeSynonymDecl tsd) {
+        var tps = tsd.TypeArgs.ConvertAll(CloneTypeParam);
+        return new TypeSynonymDecl(Tok(tsd.tok), tsd.Name, CloneTPChar(tsd.Characteristics), tps, m, CloneType(tsd.Rhs), CloneAttributes(tsd.Attributes));
+      } else if (d is NewtypeDecl nd) {
+        if (nd.Var == null) {
+          return new NewtypeDecl(Tok(nd.tok), nd.Name, m, CloneType(nd.BaseType), nd.Members.ConvertAll(CloneMember), CloneAttributes(nd.Attributes), nd.IsRefining);
+        } else {
+          return new NewtypeDecl(Tok(nd.tok), nd.Name, m, CloneBoundVar(nd.Var), CloneExpr(nd.Constraint), nd.WitnessKind, CloneExpr(nd.Witness), nd.Members.ConvertAll(CloneMember), CloneAttributes(nd.Attributes), nd.IsRefining);
+        }
+      } else if (d is TupleTypeDecl ttd) {
+        return new TupleTypeDecl(ttd.Dims, ttd.EnclosingModuleDefinition, ttd.Attributes);
+      } else if (d is IndDatatypeDecl idd) {
+        var tps = idd.TypeArgs.ConvertAll(CloneTypeParam);
+        var ctors = idd.Ctors.ConvertAll(CloneCtor);
+        var dt = new IndDatatypeDecl(Tok(idd.tok), idd.Name, m, tps, ctors, idd.Members.ConvertAll(CloneMember), CloneAttributes(idd.Attributes), idd.IsRefining);
         return dt;
-      } else if (d is CoDatatypeDecl) {
-        var dd = (CoDatatypeDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ctors = dd.Ctors.ConvertAll(CloneCtor);
-        var dt = new CoDatatypeDecl(Tok(dd.tok), dd.Name, m, tps, ctors, dd.Members.ConvertAll(CloneMember), CloneAttributes(dd.Attributes), dd.IsRefining);
+      } else if (d is CoDatatypeDecl cdd) {
+        var tps = cdd.TypeArgs.ConvertAll(CloneTypeParam);
+        var ctors = cdd.Ctors.ConvertAll(CloneCtor);
+        var dt = new CoDatatypeDecl(Tok(cdd.tok), cdd.Name, m, tps, ctors, cdd.Members.ConvertAll(CloneMember), CloneAttributes(cdd.Attributes), cdd.IsRefining);
         return dt;
-      } else if (d is IteratorDecl) {
-        var dd = (IteratorDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var ins = dd.Ins.ConvertAll(CloneFormal);
-        var outs = dd.Outs.ConvertAll(CloneFormal);
-        var reads = CloneSpecFrameExpr(dd.Reads);
-        var mod = CloneSpecFrameExpr(dd.Modifies);
-        var decr = CloneSpecExpr(dd.Decreases);
-        var req = dd.Requires.ConvertAll(CloneAttributedExpr);
-        var yreq = dd.YieldRequires.ConvertAll(CloneAttributedExpr);
-        var ens = dd.Ensures.ConvertAll(CloneAttributedExpr);
-        var yens = dd.YieldEnsures.ConvertAll(CloneAttributedExpr);
-        var body = CloneBlockStmt(dd.Body);
-        var iter = new IteratorDecl(Tok(dd.tok), dd.Name, m,
+      } else if (d is IteratorDecl id) {
+        var tps = id.TypeArgs.ConvertAll(CloneTypeParam);
+        var ins = id.Ins.ConvertAll(CloneFormal);
+        var outs = id.Outs.ConvertAll(CloneFormal);
+        var reads = CloneSpecFrameExpr(id.Reads);
+        var mod = CloneSpecFrameExpr(id.Modifies);
+        var decr = CloneSpecExpr(id.Decreases);
+        var req = id.Requires.ConvertAll(CloneAttributedExpr);
+        var yreq = id.YieldRequires.ConvertAll(CloneAttributedExpr);
+        var ens = id.Ensures.ConvertAll(CloneAttributedExpr);
+        var yens = id.YieldEnsures.ConvertAll(CloneAttributedExpr);
+        var body = CloneBlockStmt(id.Body);
+        var iter = new IteratorDecl(Tok(id.tok), id.Name, m,
           tps, ins, outs, reads, mod, decr,
           req, ens, yreq, yens,
-          body, CloneAttributes(dd.Attributes), dd.SignatureEllipsis);
+          body, CloneAttributes(id.Attributes), id.SignatureEllipsis);
         return iter;
-      } else if (d is TraitDecl) {
-        var dd = (TraitDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(CloneMember);
-        var cl = new TraitDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+      } else if (d is TraitDecl td) {
+        var tps = td.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = td.Members.ConvertAll(CloneMember);
+        var cl = new TraitDecl(Tok(td.tok), td.Name, m, tps, mm, CloneAttributes(td.Attributes), td.IsRefining, td.ParentTraits.ConvertAll(CloneType));
         return cl;
-      } else if (d is ClassDecl) {
-        var dd = (ClassDecl)d;
-        var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        var mm = dd.Members.ConvertAll(CloneMember);
+      } else if (d is ClassDecl cd) {
+        var tps = cd.TypeArgs.ConvertAll(CloneTypeParam);
+        var mm = cd.Members.ConvertAll(CloneMember);
         if (d is DefaultClassDecl) {
           return new DefaultClassDecl(m, mm);
         } else {
-          return new ClassDecl(Tok(dd.tok), dd.Name, m, tps, mm, CloneAttributes(dd.Attributes), dd.IsRefining, dd.ParentTraits.ConvertAll(CloneType));
+          return new ClassDecl(Tok(cd.tok), cd.Name, m, tps, mm, CloneAttributes(cd.Attributes), cd.IsRefining, cd.ParentTraits.ConvertAll(CloneType));
         }
+      } else if (d is ExportDecl ed) {
+        return new ExportDecl(ed.tok, m, ed.Exports, ed.Extends, ed.ProvideAll, ed.RevealAll, ed.IsDefault, ed.IsRefining);
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl) {
           // TODO: Does not clone any details; is still resolved
           return new LiteralModuleDecl(((LiteralModuleDecl)d).ModuleDef, m);
-        } else if (d is AliasModuleDecl) {
-          var a = (AliasModuleDecl)d;
-          return new AliasModuleDecl(a.TargetQId ?? a.TargetQId.clone(false), a.tok, m, a.Opened, a.Exports);
-        } else if (d is AbstractModuleDecl) {
-          var a = (AbstractModuleDecl)d;
-          return new AbstractModuleDecl(a.Path ?? a.Path.clone(false), a.tok, m, a.Opened, a.Exports);
-        } else if (d is ModuleExportDecl) {
-          var a = (ModuleExportDecl)d;
-          return new ModuleExportDecl(a.tok, m, a.Exports, a.Extends, a.ProvideAll, a.RevealAll, a.IsDefault, a.IsRefining);
+        } else if (d is AliasModuleDecl amd) {
+          return new AliasModuleDecl(amd.TargetQId ?? amd.TargetQId.clone(false), amd.tok, m, amd.Opened, amd.Exports);
+        } else if (d is AbstractModuleDecl abs) {
+          return new AbstractModuleDecl(abs.QId ?? abs.QId.clone(false), abs.tok, m, abs.Opened, abs.Exports);
         } else {
           Contract.Assert(false);  // unexpected declaration
           return null;  // to please compiler
@@ -838,8 +825,8 @@ namespace Microsoft.Dafny
           var sourcefacade = (AbstractModuleDecl)d;
 
           ((AbstractModuleDecl)dd).OriginalSignature = sourcefacade.OriginalSignature;
-          if (sourcefacade.Root != null) {
-            ((AbstractModuleDecl)dd).Root = (ModuleDecl)CloneDeclaration(sourcefacade.Root, m);
+          if (sourcefacade.QId?.Root != null) {
+            ((AbstractModuleDecl)dd).QId.Root = (ModuleDecl)CloneDeclaration(sourcefacade.QId.Root, m);
           }
         } else if (d is AliasModuleDecl) {
           var sourcealias = (AliasModuleDecl)d;
@@ -1001,7 +988,7 @@ namespace Microsoft.Dafny
 
     public override ModuleDefinition CloneModuleDefinition(ModuleDefinition m, string name) {
       var basem = base.CloneModuleDefinition(m, name);
-      basem.TopLevelDecls.RemoveAll(t => t is ModuleExportDecl);
+      basem.TopLevelDecls.RemoveAll(t => t is ExportDecl);
       return basem;
     }
 
@@ -1079,7 +1066,7 @@ namespace Microsoft.Dafny
       }
 
       foreach (var kv in org.ExportSets) {
-        ModuleExportDecl d;
+        ExportDecl d;
         if (newSig.ExportSets.TryGetValue(kv.Key, out d)) {
           sig.ExportSets.Add(kv.Key, d);
         }

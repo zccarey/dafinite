@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
       currentScope.Augment(systemModule.VisibilityScope);
 
       foreach (var decl in m.TopLevelDecls) {
-        if (decl is ModuleDecl && !(decl is ModuleExportDecl)) {
+        if (decl is ModuleDecl && !(decl is ExportDecl)) {
           var mdecl = (ModuleDecl)decl;
           currentScope.Augment(mdecl.AccessibleSignature().VisibilityScope);
         }
@@ -805,6 +805,8 @@ namespace Microsoft.Dafny {
             var dd = (OpaqueTypeDecl)d;
             AddTypeDecl(dd);
             AddClassMembers(dd, true);
+          } else if (d is ExportDecl) {
+            // already added as a top level module, ignore this.
           } else if (d is ModuleDecl) {
             // submodules have already been added as a top level module, ignore this.
           } else if (d is RevealableTypeDecl) {
