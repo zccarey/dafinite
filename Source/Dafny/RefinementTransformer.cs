@@ -158,7 +158,7 @@ namespace Microsoft.Dafny
             MergeTopLevelDecls(m, nw, d, index);
           } else if (d is TypeSynonymDecl) {
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} may not redeclare a non-opaque type name {d.Name} from module {m.RefinementQId.ToString()}, even with the same type, unless refining (...)");
-          } else if (!(d is AbstractModuleDecl)) {
+          } else if (!(d is AbstractModuleDecl) && !(d is ExportDecl || nw is ExportDecl)) {
             reporter.Error(MessageSource.RefinementTransformer, nw.tok, $"module {m.Name} redeclares a name {d.Name} from module {m.RefinementQId.ToString()}");
           }
         }
@@ -1504,7 +1504,7 @@ namespace Microsoft.Dafny
         // refining module, retain its name but not be default, unless the refining module has the same name
         ExportDecl dex = d as ExportDecl;
         if (dex.IsDefault && d.Name != m.Name) {
-          ddex = new ExportDecl(dex.tok, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
+          ddex = new ExportDecl(dex.tok, d.Name, m, dex.Exports, dex.Extends, dex.ProvideAll, dex.RevealAll, false, true);
         }
         ddex.SetupDefaultSignature();
         dd = ddex;

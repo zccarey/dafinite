@@ -3596,7 +3596,20 @@ namespace Microsoft.Dafny {
     public readonly VisibilityScope ThisScope;
     public ExportDecl(IToken tok, ModuleDefinition parent,
       List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
-      : base(tok, isDefault ? parent.Name : tok.val, parent, new List<TypeParameter>(), null, isRefining) {
+      : base(tok, isDefault || tok.val == "export" ? parent.Name : tok.val, parent, new List<TypeParameter>(), null, isRefining) {
+      Contract.Requires(exports != null);
+      IsDefault = isDefault;
+      Exports = exports;
+      Extends = extends;
+      ProvideAll = provideAll;
+      RevealAll = revealAll;
+      Signature = null;
+      ThisScope = new VisibilityScope(this.FullCompileName);
+    }
+
+    public ExportDecl(IToken tok, string name, ModuleDefinition parent,
+      List<ExportSignature> exports, List<IToken> extends, bool provideAll, bool revealAll, bool isDefault, bool isRefining)
+      : base(tok, name, parent, new List<TypeParameter>(), null, isRefining) {
       Contract.Requires(exports != null);
       IsDefault = isDefault;
       Exports = exports;
@@ -3811,37 +3824,6 @@ namespace Microsoft.Dafny {
     private readonly bool IsBuiltinName; // true if this is something like _System that shouldn't have it's name mangled.
     public readonly bool IsToBeVerified;
     public readonly bool IsToBeCompiled;
-
-    // private ModuleSignature refinementBaseSig; // module signature of the refinementBase.
-    // public ModuleSignature RefinementBaseSig {
-    //   get {
-    //     return refinementBaseSig;
-    //   }
-    //
-    //   set {
-    //     // the refinementBase member may only be changed once.
-    //     if (null != refinementBaseSig) {
-    //       throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-    //     }
-    //     refinementBaseSig = value;
-    //   }
-    // }
-
-    // private ModuleDefinition refinementBase; // filled in during resolution via RefinementBase property (null if no refinement base yet or at all).
-    //
-    // public ModuleDefinition RefinementBase {
-    //     get {
-    //        return refinementBase;
-    //     }
-    //
-    //     set {
-    //       // the refinementBase member may only be changed once.
-    //       if (null != refinementBase) {
-    //           throw new InvalidOperationException(string.Format("This module ({0}) already has a refinement base ({1}).", Name, refinementBase.Name));
-    //       }
-    //       refinementBase = value;
-    //     }
-    // }
 
     public int? ResolvedHash { get; set; }
 
