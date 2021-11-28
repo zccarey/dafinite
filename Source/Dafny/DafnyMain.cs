@@ -95,6 +95,7 @@ namespace Microsoft.Dafny {
 
       var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
       var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      // Console.WriteLine("========================= Printing program (afterResolver = " + afterResolver + ") to file " + filename + "=========================");
       pr.PrintProgram(program, afterResolver);
     }
 
