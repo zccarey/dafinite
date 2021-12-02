@@ -1,7 +1,7 @@
 // type client
 // type server
-datatype Server = Server(semaphore:bool)
-datatype Client = Client(connServers:set<Server>)
+datatype Server = Server(id:int, semaphore:bool)
+datatype Client = Client(id:int, connServers:set<int>)
 datatype Machine = Machine(clients:set<Client>, servers:set<Server>)
 
 // relation link(X:client, Y:server)
@@ -22,20 +22,13 @@ predicate Init(m: Machine) {
 //   semaphore(y) := false
 // }
 predicate Connect(m: Machine, m': Machine, c: Client, s: Server) {
-    exists c:Client, c':Client, s:Server, s':Server ::
-        c in m.clients &&
-        c' in m'.clients &&
-        s in m.servers &&
-        s' in m'.servers &&
-
-        s.semaphore == true &&
-        s'.semaphore == false &&
-        s' in c'.connServers &&
-        forall testC:Client :: testC in m'.clients && s' in testC.connServers ==> testC == c'
-
-    c in m.clients &&
-    s in m.servers &&
-
+    && c in m.clients // client exists
+    && s in m.servers // server exists
+    && s.semaphore == true // server is unlocked to start
+    && Client(c.id, c.connServers + {s.id}) in m'.clients // client ends up locked on this server
+    && Server(s.id, false) in m'.servers // server ends up locked
+    && (m.servers - {s}) == (m'.servers - {Server(s.id, false)}) // no other changes
+    && (m.clients - {c}) == (m'.clients - {Client(c.id, c.connServers + {s.id})}) // no other changes
 }
 
 // action disconnect(x:client,y:server) = {
@@ -43,16 +36,14 @@ predicate Connect(m: Machine, m': Machine, c: Client, s: Server) {
 //   link(x,y) := false;
 //   semaphore(y) := true
 // }
-predicate Disconnect(m: Machine, m': Machine) {
-    exists c:Client, c':Client, s:Server, s':Server ::
-        c in m.clients &&
-        c' in m'.clients &&
-        s in m.servers &&
-        s' in m'.servers &&
-
-        s.semaphore == false &&
-        s'.semaphore == true &&
-        forall testC:Client :: testC in m'.clients ==> s' !in testC.connServers
+predicate Disconnect(m: Machine, m': Machine, c: Client, s: Server) {
+    && c in m.clients // client exists
+    && s in m.servers // server exists
+    && s.id in c.connServers // client held server lock
+    && Client(c.id, c.connServers - {s.id}) in m'.clients // client ends up unlocked on this server
+    && Server(s.id, true) in m'.servers // server ends up unlocked
+    && (m.servers - {s}) == (m'.servers - {Server(s.id, true)}) // no other changes
+    && (m.clients - {c}) == (m'.clients - {Client(c.id, c.connServers - {s.id})}) // no other changes
 }
 
 predicate Next(m:Machine, m':Machine) {
