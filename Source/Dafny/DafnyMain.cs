@@ -93,10 +93,16 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
-      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
       // Console.WriteLine("========================= Printing program (afterResolver = " + afterResolver + ") to file " + filename + "=========================");
-      pr.PrintProgram(program, afterResolver);
+      if (afterResolver && DafnyOptions.O.DafnyFinitizedDatatypes.Count != 0) {
+        var tw = DafnyOptions.O.DafnyPrintFinitizedVMTFile == "-" ? Console.Out : new StreamWriter(DafnyOptions.O.DafnyPrintFinitizedVMTFile);
+        var vmtPr = new VMTPrinter(tw, DafnyOptions.O.DafnyFinitizedDatatypes, DafnyOptions.O.PrintMode);
+        vmtPr.PrintProgram(program, afterResolver);
+      } else {
+        var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+        var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+        pr.PrintProgram(program, afterResolver);
+      }
     }
 
     /// <summary>

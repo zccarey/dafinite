@@ -2,7 +2,7 @@
 // type server
 datatype Server = Server(id:int, semaphore:bool)
 datatype Client = Client(id:int, connServers:set<int>)
-datatype Machine = Machine(clients:set<Client>, servers:set<Server>)
+datatype DafnyStateMachine = DafnyStateMachine(clients:set<Client>, servers:set<Server>)
 
 // relation link(X:client, Y:server)
 // relation semaphore(X:server)
@@ -11,7 +11,7 @@ datatype Machine = Machine(clients:set<Client>, servers:set<Server>)
 //     semaphore(W) := true;
 //     link(X,Y) := false
 // }
-predicate Init(m: Machine) {
+predicate Init(m: DafnyStateMachine) {
     (forall s:Server :: s in m.servers ==> s.semaphore == true)
     && (forall c:Client :: c in m.clients ==> |c.connServers| == 0)
 }
@@ -21,7 +21,7 @@ predicate Init(m: Machine) {
 //   link(x,y) := true;
 //   semaphore(y) := false
 // }
-predicate Connect(m: Machine, m': Machine, c: Client, s: Server) {
+predicate Connect(m: DafnyStateMachine, m': DafnyStateMachine, c: Client, s: Server) {
     && c in m.clients // client exists
     && s in m.servers // server exists
     && s.semaphore == true // server is unlocked to start
@@ -36,7 +36,7 @@ predicate Connect(m: Machine, m': Machine, c: Client, s: Server) {
 //   link(x,y) := false;
 //   semaphore(y) := true
 // }
-predicate Disconnect(m: Machine, m': Machine, c: Client, s: Server) {
+predicate Disconnect(m: DafnyStateMachine, m': DafnyStateMachine, c: Client, s: Server) {
     && c in m.clients // client exists
     && s in m.servers // server exists
     && s.id in c.connServers // client held server lock
@@ -46,7 +46,7 @@ predicate Disconnect(m: Machine, m': Machine, c: Client, s: Server) {
     && (m.clients - {c}) == (m'.clients - {Client(c.id, c.connServers - {s.id})}) // no other changes
 }
 
-predicate Next(m:Machine, m':Machine) {
+predicate Next(m:DafnyStateMachine, m':DafnyStateMachine) {
     || (exists c:Client, s:Server :: Connect(m, m', c, s))
     || (exists c:Client, s:Server :: Disconnect(m, m', c, s))
 }

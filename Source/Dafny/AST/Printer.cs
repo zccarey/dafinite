@@ -16,7 +16,7 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class Printer {
-    TextWriter wr;
+    public TextWriter wr;
     DafnyOptions.PrintModes printMode;
     bool afterResolver;
     bool printingExportSet = false;
@@ -164,7 +164,7 @@ namespace Microsoft.Dafny {
       return sb.ToString(0, len);
     }
 
-    public void PrintProgram(Program prog, bool afterResolver) {
+    public virtual void PrintProgram(Program prog, bool afterResolver) {
       Contract.Requires(prog != null);
       this.afterResolver = afterResolver;
       if (Bpl.CommandLineOptions.Clo.ShowEnv != Bpl.CommandLineOptions.ShowEnvironment.Never) {

@@ -58,6 +58,8 @@ namespace Microsoft.Dafny {
     public PrintModes PrintMode = PrintModes.Everything;  // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
+    public string DafnyPrintFinitizedVMTFile = null;
+    public Dictionary<string, int> DafnyFinitizedDatatypes = new Dictionary<string, int>();
     public List<string> DafnyPrintExportedViews = new List<string>();
     public bool Compile = true;
     [Flags]
@@ -147,6 +149,23 @@ namespace Microsoft.Dafny {
             DafnyPrintResolvedFile = args[ps.i];
           }
           return true;
+
+        case "vprint":
+          if (ps.ConfirmArgumentCount(1)) {
+            DafnyPrintFinitizedVMTFile = args[ps.i];
+          }
+          return true;
+
+        case "finitize":
+          if (ps.ConfirmArgumentCount(1)) {
+            var listWithEquals = args[ps.i].Split(',').ToList();
+            foreach (string arg in listWithEquals) {
+              var nameAndCount = arg.Split('=').ToList();
+              DafnyFinitizedDatatypes.Add(nameAndCount[0], Int32.Parse(nameAndCount[1]));
+            }
+          }
+          return true;
+
         case "view":
           if (ps.ConfirmArgumentCount(1)) {
             DafnyPrintExportedViews = args[ps.i].Split(',').ToList();
