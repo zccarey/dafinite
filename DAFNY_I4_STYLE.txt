@@ -1,11 +1,11 @@
 
 Running Dafny compiler:
-    Run like "dafny \finitize:Server=1,Client=2 \vprint <vmtFile> \rprint <whatever>". Pass "-" as <vmtFile> to print to stdout.
+    Run like "dafny /finitize:Server=1,Client=2 /vprint <vmtFile> /rprint <whatever>". Pass "-" as <vmtFile> to print to stdout.
 
 
 ========== DATATYPES ==========
 
-- There must be a datatype "DafnyStateMachine" that embodies the state machine.
+- There must be a datatype "DafnyStat" that embodies the state.
 - All other datatypes are the finitized types specified on the command line.
 - All of the finitized types specificed on the command line must appear in the Dafny program.
 
@@ -13,7 +13,7 @@ Running Dafny compiler:
 
 FOR NOW:
     - Assume the only predicates are Init, Next, and state machine transitions. No other functions.
-    - There must be a predicate "Next" that takes as input two "DafnyStateMachine"s.
+    - There must be a predicate "Next" that takes as input two "DafnyState"s.
       The first represents the new state, and the second represents the old/prev state.
 
 IDEALLY LATER:
