@@ -49,11 +49,12 @@ namespace Microsoft.Dafny {
     }
 
     public void ParseDatatypes(Program prog) {  // TODO TODO TODO PARSE CONSTRUCTOR(S)
-      Console.WriteLine("DATATYPES");
+      //Console.WriteLine("DATATYPES");
+      wr.WriteLine("\n; Define and enumerate transition system parameters");
 
       foreach (TopLevelDecl d in prog.DefaultModuleDef.TopLevelDecls) {
         if (d is DatatypeDecl) {
-          Console.WriteLine("DATATYPE");
+          //Console.WriteLine("DATATYPE");
           var dd = (DatatypeDecl)d;
           var name = dd.Name;
 
@@ -81,11 +82,11 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Console.WriteLine("END DATATYPES");
+      //Console.WriteLine("END DATATYPES");
     }
 
     public void ParsePredicates(Program prog) {
-      Console.WriteLine("PREDICATES");
+      //Console.WriteLine("PREDICATES");
 
       foreach (TopLevelDecl d in prog.DefaultModuleDef.TopLevelDecls) {
         if (d is ClassDecl) {
@@ -94,7 +95,7 @@ namespace Microsoft.Dafny {
             if (mem is Function) {
               Function f = (Function)mem;
               if (f is Predicate) {
-                Console.WriteLine("PREDICATE");
+                //Console.WriteLine("PREDICATE");
 
                 ParsePredicate((Predicate)f);
 
@@ -105,19 +106,40 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Console.WriteLine("END PREDICATES. Printing Relations:");
-      // wr.WriteLine("; Declare transition system states");
-      // foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
-      //   Console.WriteLine("KEY = " + relation);
-      //   var numDatatypes = datatypeParams.Length;
-      //   var relationIndices = new List<int>(numDatatypes);
-      //   for (var i = 0; i < numDatatypes; ++i) relationIndices.Add(0);
-      //   foreach (var datatype in datatypeParams) {
-      //     for (int )
-      //     wr.WriteLine("(declare-fun {0}_{1}_{2} () {3}_type", );
-      //     Console.WriteLine("DATATYPE = " + datatype);
-      //   }
-      // }
+      wr.WriteLine("\n; Declare transition system states");
+      foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
+        var numDatatypes = datatypeParams.Count;
+        var datatypeAmounts = new List<int>(numDatatypes);
+
+        foreach (var datatype in datatypeParams) {
+          datatypeAmounts.Add(Instances[datatype]);
+        }
+
+        GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0);
+
+        wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
+                     relation, "bool"); // TODO UNHARDCODE BOOL
+      }
+    }
+
+    public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex) {
+      if (currIndex == numDatatypes - 1) {
+        // Last level, iterate
+        for (int lastLevelIter = 0; lastLevelIter < datatypeAmounts[currIndex]; ++lastLevelIter) {
+          var finalStr = str + "_" + lastLevelIter;
+          wr.WriteLine("(declare-fun {0} () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          wr.WriteLine("(declare-fun {0}_next () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          // Next thing in translate.py for unhardcoding bool:
+          // if ret != 'bool_type':
+          //   lemmas.append('(is_%s %s)' % (x.sort, name))
+        }
+      }
+      else {
+        for (int intraLevelIter = 0; intraLevelIter < datatypeAmounts[currIndex]; ++intraLevelIter) {
+          GenRelationCombos(numDatatypes, datatypeAmounts, str + "_" + intraLevelIter, currIndex + 1);
+        }
+      }
     }
 
     public void ParsePredicate(Predicate pred) {
@@ -130,10 +152,8 @@ namespace Microsoft.Dafny {
       } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
         // Dealing with a relation
         var datatypeParams = new List<string>();
-        // wr.WriteLine("BEAN BEAN BEAN Predicate.Formals:");
         foreach (Formal f in pred.Formals) {
           string typeName = f.Type.ToString();
-          // wr.WriteLine("BEAN FORMAL: " + f.Name + ", TYPE: " + typeName);
           if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
             Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
           }
