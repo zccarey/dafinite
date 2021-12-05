@@ -8,14 +8,17 @@ Running Dafny compiler:
 - There must be a datatype "DafnyStat" that embodies the state.
 - All other datatypes are the finitized types specified on the command line.
 - All of the finitized types specificed on the command line must appear in the Dafny program.
+- If a datatype needs a unique ID, it should have a 
 
 ========== PREDICATES ==========
 
-FOR NOW:
-    - Assume the only predicates are Init, Next, and state machine transitions. No other functions.
-    - There must be a predicate "Next" that takes as input two "DafnyState"s.
+- There must be an Init and a Next
+    - Init must take as parameter a single instance of DafnyState
+    - Next must take two DafnyStates as parameters.
       The first represents the new state, and the second represents the old/prev state.
-
-IDEALLY LATER:
-    - Allow other predicates and functions, but the relevant ones for us should
-      be "Next", "Init", and state transition predicates named "DafnyStateTransition<Name>"
+- All other predicates must be Actions or Relations, with respective name prefix
+  "Action" and "Relation"
+    - Relations must take as their first parameter a DafnyState (??? Don't think this is needed, not currently checking)
+    - Actions must take exactly two parameters, both DafnyStates.
+      The first represents the new state, and the second represents the old/prev state.
+- No other predicates allowed (for now)

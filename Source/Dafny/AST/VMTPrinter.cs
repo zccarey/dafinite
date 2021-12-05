@@ -17,14 +17,18 @@ namespace Microsoft.Dafny {
 (define-fun is_bool ((x bool_type)) Bool (or (= x bv_true) (= x bv_false))))
 ";
 
-    private string STATE_MACHINE_DATATYPE_NAME = "DafnyStateMachine";
+    private string STATE_MACHINE_DATATYPE_NAME = "DafnyState";
     private string STATE_MACHINE_INIT_PRED_NAME = "Init";
-    private string STATE_MACHINE_NEXT_PRED_NAME = "Pred";
+    private string STATE_MACHINE_NEXT_PRED_NAME = "Next";
+    private string STATE_MACHINE_RELATION_PREFIX = "Relation";
+    private string STATE_MACHINE_ACTION_PREFIX = "Action";
 
     public Dictionary<System.Type, Func<Expression, string>> AstDict = new Dictionary<System.Type, Func<Expression, string>>();
 
     public Dictionary<string, int> Instances;
     public HashSet<int> TypeLengthSet = new HashSet<int> { 0, 1 };
+
+    public Dictionary<string, List<string>> RelationDatatypeParams = new Dictionary<string, List<string>>();
 
     public VMTPrinter(TextWriter wr,
                       Dictionary<string, int> datatypeInstanceCounts,
@@ -44,7 +48,7 @@ namespace Microsoft.Dafny {
       ParsePredicates(prog);
     }
 
-    public void ParseDatatypes(Program prog) {
+    public void ParseDatatypes(Program prog) {  // TODO TODO TODO PARSE CONSTRUCTOR(S)
       Console.WriteLine("DATATYPES");
 
       foreach (TopLevelDecl d in prog.DefaultModuleDef.TopLevelDecls) {
@@ -101,7 +105,19 @@ namespace Microsoft.Dafny {
         }
       }
 
-      Console.WriteLine("END PREDICATES");
+      // Console.WriteLine("END PREDICATES. Printing Relations:");
+      // wr.WriteLine("; Declare transition system states");
+      // foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
+      //   Console.WriteLine("KEY = " + relation);
+      //   var numDatatypes = datatypeParams.Length;
+      //   var relationIndices = new List<int>(numDatatypes);
+      //   for (var i = 0; i < numDatatypes; ++i) relationIndices.Add(0);
+      //   foreach (var datatype in datatypeParams) {
+      //     for (int )
+      //     wr.WriteLine("(declare-fun {0}_{1}_{2} () {3}_type", );
+      //     Console.WriteLine("DATATYPE = " + datatype);
+      //   }
+      // }
     }
 
     public void ParsePredicate(Predicate pred) {
@@ -111,8 +127,25 @@ namespace Microsoft.Dafny {
         // Dealing with Init
       } else if (name == STATE_MACHINE_NEXT_PRED_NAME) {
         // Dealing with Next
+      } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
+        // Dealing with a relation
+        var datatypeParams = new List<string>();
+        // wr.WriteLine("BEAN BEAN BEAN Predicate.Formals:");
+        foreach (Formal f in pred.Formals) {
+          string typeName = f.Type.ToString();
+          // wr.WriteLine("BEAN FORMAL: " + f.Name + ", TYPE: " + typeName);
+          if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
+            Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
+          }
+          if (typeName != STATE_MACHINE_DATATYPE_NAME) {
+            datatypeParams.Add(typeName);
+          }
+        }
+        RelationDatatypeParams.Add(name, datatypeParams);
+      } else if (name.StartsWith(STATE_MACHINE_ACTION_PREFIX) && name != STATE_MACHINE_ACTION_PREFIX) {
+        // Dealing with an action
       } else {
-        // Dealing with a state transition
+        Debug.Assert(false, "Predicate '" + name + "' is not an action, relation, or keyword");
       }
     }
 
