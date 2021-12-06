@@ -349,7 +349,26 @@ namespace Microsoft.Dafny {
     }
 
     public string InstantiateUnary(Expression e, Dictionary<string, string> replace = null) {
-      return "UNARY";
+      if (e is UnaryOpExpr) {
+        UnaryOpExpr exp = (UnaryOpExpr)e;
+        switch (exp.Op) {
+          case (UnaryOpExpr.Opcode.Not):
+            return InstantiateNot(e, replace);
+          default:
+            return UnhandledCase(e, replace);
+        }
+      } else if (e is TypeUnaryExpr) {
+        return UnhandledCase(e, replace);
+      }
+      return UnhandledCase(e, replace);
+    }
+
+    public string InstantiateNot(Expression e, Dictionary<string, string> replace = null) {
+      UnaryOpExpr exp = (UnaryOpExpr)e;
+      string retval = "(ite ";
+      retval += InstantiateExpr(exp.E, replace);
+      retval += " bv_false bv_true)";
+      return retval;
     }
 
     public string InstantiateLiteral(Expression e, Dictionary<string, string> replace = null) {
