@@ -188,18 +188,18 @@ namespace Microsoft.Dafny {
           datatypeAmounts.Add(Instances[datatype]);
         }
 
-        GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0);
+        GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0, relation);
 
         wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
                      relation, "bool"); // TODO UNHARDCODE BOOL
       }
     }
 
-    public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex) {
+    public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex, string relation) {
       if (currIndex == numDatatypes - 1) {
         // Last level, iterate
         for (int lastLevelIter = 0; lastLevelIter < datatypeAmounts[currIndex]; ++lastLevelIter) {
-          var finalStr = str + "_" + lastLevelIter;
+          var finalStr = str + "_" + RelationDatatypeParams[relation][currIndex] + lastLevelIter;
           wr.WriteLine("(declare-fun {0} () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
           wr.WriteLine("(declare-fun {0}_next () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
           wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
@@ -209,7 +209,7 @@ namespace Microsoft.Dafny {
         }
       } else {
         for (int intraLevelIter = 0; intraLevelIter < datatypeAmounts[currIndex]; ++intraLevelIter) {
-          GenRelationCombos(numDatatypes, datatypeAmounts, str + "_" + intraLevelIter, currIndex + 1);
+          GenRelationCombos(numDatatypes, datatypeAmounts, str + "_" + RelationDatatypeParams[relation][currIndex] + intraLevelIter, currIndex + 1, relation);
         }
       }
     }
@@ -311,7 +311,6 @@ namespace Microsoft.Dafny {
       List<Dictionary<string, string>> allcombs = new List<Dictionary<string, string>>();
       Dictionary<string, string> start = new Dictionary<string, string>();
       GenerateFinitizationHelper(ref allcombs, ref start, exp.BoundVars);
-      // TODO: figure out what allcombs is bad
 
       // need to check variables, if of type datatype, then instantiate every instance in implies
 
@@ -320,7 +319,6 @@ namespace Microsoft.Dafny {
       for (int i = 0; i < allcombs.Count; ++i) {
         foreach (var (key, val) in allcombs[i]) {
           replace.Add(key, val);
-          wr.Write("key=" + key + " val=" + val + "\n");
         }
         retval += InstantiateExpr(body, replace);
 
@@ -335,16 +333,14 @@ namespace Microsoft.Dafny {
 
     private void GenerateFinitizationHelper(ref List<Dictionary<string, string>> final, ref Dictionary<string, string> current, List<BoundVar> vars) {
       if (current.Count == vars.Count) {
-        wr.Write("ADDING COMB: ");
+        final.Add(new Dictionary<string, string>());
         foreach (var (key, val) in current) {
-          wr.Write(key + " " + val);
+          final[final.Count - 1].Add(key, val);
         }
-        final.Add(current);
         return;
       }
       int size = current.Count;
       BoundVar v = vars[size];
-      wr.Write("boundval name=" + v.Name + " type=" + v.Type.ToString() + "\n");
       for (int i = 0; i < Instances[v.Type.ToString()]; ++i) {
         current.Add(v.Name, v.Type.ToString() + i);
         GenerateFinitizationHelper(ref final, ref current, vars);
@@ -429,6 +425,7 @@ namespace Microsoft.Dafny {
       string name = exp.Name;
       string retval = "";
       if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX)) {
+        retval += name;
         if (replace != null) {
           List<Expression> args = exp.Args;
           for (int i = 1; i < args.Count; ++i) {
@@ -456,6 +453,7 @@ namespace Microsoft.Dafny {
       string name = ((NameSegment)exp.Lhs).Name;
       string retval = "";
       if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX)) {
+        retval += name;
         if (replace != null) {
           List<Expression> args = exp.Args;
           for (int i = 1; i < args.Count; ++i) {
