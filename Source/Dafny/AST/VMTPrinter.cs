@@ -20,7 +20,7 @@ namespace Microsoft.Dafny {
     private string STATE_MACHINE_DATATYPE_NAME = "DafnyState";
     private string STATE_MACHINE_INIT_PRED_NAME = "Init";
     private string STATE_MACHINE_NEXT_PRED_NAME = "Next";
-    private string STATE_MACHINE_INVARIANT_PRED_NAME = "Invariant";
+    private string STATE_MACHINE_SAFETY_PRED_NAME = "Safety";
     private string STATE_MACHINE_RELATION_PREFIX = "Relation";
     private string STATE_MACHINE_ACTION_PREFIX = "Action";
 
@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
       BuildActions();
       DeclareActionsAndTransitionRelations();
       BuildNext();
-      BuildInvariant();
+      BuildSafety();
 
       wr.Flush();
     }
@@ -144,7 +144,7 @@ namespace Microsoft.Dafny {
 
       Debug.Assert(InitPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_INIT_PRED_NAME + "' predicate.");
       Debug.Assert(NextPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_NEXT_PRED_NAME + "' predicate.");
-      Debug.Assert(InvariantPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_INVARIANT_PRED_NAME + "' predicate.");
+      Debug.Assert(InvariantPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_SAFETY_PRED_NAME + "' predicate.");
     }
 
     public void ParsePredicate(Predicate pred) {
@@ -163,7 +163,7 @@ namespace Microsoft.Dafny {
                      "Next predicate must take exactly two parameters, of type " + STATE_MACHINE_DATATYPE_NAME
                      + ". The first represents the current/previous state, the second represents the next state.");
         NextPredicate = pred;
-      } else if (name == STATE_MACHINE_INVARIANT_PRED_NAME) {
+      } else if (name == STATE_MACHINE_SAFETY_PRED_NAME) {
         Debug.Assert(pred.Formals.Count == 1, "Invariant predicate must take exactly one parameter, of type " + STATE_MACHINE_DATATYPE_NAME);
         InvariantPredicate = pred;
       } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
@@ -258,12 +258,11 @@ namespace Microsoft.Dafny {
       foreach (Predicate pred in ActionPredicates) {
         PrevName = pred.Formals[0].Name;
         NextName = pred.Formals[1].Name;
-        // TODO NOT DONE NOT DONE NOT DONE
-        wr.Write("(define-fun {0}_fun () Bool (", pred.Name);
+        wr.Write("(define-fun {0}_fun () Bool ", pred.Name);
         wr.Write("(= ");
         wr.Write(InstantiateExpr(pred.Body));
         wr.Write(" bv_true)");
-        wr.Write("))\n");
+        wr.Write(")\n");
       }
       PrevName = null;
       NextName = null;
@@ -305,7 +304,7 @@ namespace Microsoft.Dafny {
       wr.WriteLine("(define-fun .trans () Bool (! (and" + checkActions + checkNoAction + ") :trans true))");
     }
 
-    public void BuildInvariant() {
+    public void BuildSafety() {
       PrevName = InvariantPredicate.Formals[0].Name;
       wr.Write("(define-fun .prop () Bool (! ");
       wr.Write("(= ");
