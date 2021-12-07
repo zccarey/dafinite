@@ -159,6 +159,10 @@ namespace Microsoft.Dafny {
         case "finitize":
           if (ps.ConfirmArgumentCount(1)) {
             var listWithEquals = args[ps.i].Split(',').ToList();
+            if (listWithEquals.Count == 1) {
+              // Only one arg, special case where splitting across comma doesn't work
+              listWithEquals[0] = args[ps.i];
+            }
             foreach (string arg in listWithEquals) {
               var nameAndCount = arg.Split('=').ToList();
               DafnyFinitizedDatatypes.Add(nameAndCount[0], Int32.Parse(nameAndCount[1]));

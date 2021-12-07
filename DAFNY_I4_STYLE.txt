@@ -9,8 +9,6 @@ Running Dafny compiler:
 - All other datatypes are the finitized types specified on the command line.
       NOTE: Perhaps can relax this as long as state-important datatypes are part of the DafnyState ctor???
 - All of the finitized types specificed on the command line must appear in the Dafny program.
-- FOR NOW, datatypes can only have one constructor.
-      NOTE: Actually probably don't care about this. Any constructor logic should be in a relation.
 - If a datatype needs a unique ID, its constructor should take an integer parameter "id" ("id: int").
   The "id" parameter will be generally ignored and "identification" will be handled by the finitization logic.
       NOTE: Actually probably don't care about this. Put any ID logic in a relation (Exists special???)

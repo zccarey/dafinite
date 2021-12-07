@@ -71,7 +71,30 @@ predicate Next(m:DafnyState, m':DafnyState) {
 }
 
 
-predicate Invariant(m: DafnyState)
+predicate Safety(m: DafnyState)
 {
     forall c1: Client, c2:Client, s: Server :: (RelationClientExists(m, c1) && RelationClientExists(m, c2) && RelationServerExists(m, s)) ==> (RelationLink(m, c1, s) && RelationLink(m, c2, s) ==> !RelationDifferentClients(m, c1, c2))
 }
+
+/*
+lemma InitImpliesInv(m: DafnyState)
+    requires Init(m)
+    ensures Inv(m)
+{
+
+}
+
+lemma NextPreservesInv(m: DafnyState, m': DafnyState)
+    requires Next(m, m')
+    requires Inv(m)
+    ensures Inv(m')
+{
+
+}
+
+lemma InvImpliesSafety(m: DafnyState)
+    requires Inv(m)
+    ensures Safety(m)
+{
+}
+*/

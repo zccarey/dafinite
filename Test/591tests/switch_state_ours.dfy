@@ -7,7 +7,8 @@ datatype SwitchState = On | Off
 
 datatype DafnyState = Whatever(switch:SwitchState)
 
-predicate RelationSwitchOn(v: DafnyState) {
+predicate RelationSwitchOn(v: DafnyState, s: SwitchState) {
+    s == v.switch &&
     v.switch == On
 }
 
@@ -35,4 +36,8 @@ predicate Next(v:DafnyState, v':DafnyState) {
     || ActionActivate(v, v')
     || ActionDeactivate(v, v')
     || ActionToggle(v, v')
+}
+
+predicate Invariant(v:DafnyState) {
+    true
 }

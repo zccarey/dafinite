@@ -245,7 +245,9 @@ namespace Microsoft.Dafny {
       NextName = null;
       wr.Write("\n; Initial state\n");
       wr.Write("(define-fun .init () Bool (! ");
+      wr.Write("(= ");
       wr.Write(InstantiateExpr(InitPredicate.Body));
+      wr.Write(" bv_true)");
       wr.Write(" :init true))\n");
       PrevName = null;
       NextName = null;
@@ -258,7 +260,9 @@ namespace Microsoft.Dafny {
         NextName = pred.Formals[1].Name;
         // TODO NOT DONE NOT DONE NOT DONE
         wr.Write("(define-fun {0}_fun () Bool (", pred.Name);
+        wr.Write("(= ");
         wr.Write(InstantiateExpr(pred.Body));
+        wr.Write(" bv_true)");
         wr.Write("))\n");
       }
       PrevName = null;
@@ -287,7 +291,7 @@ namespace Microsoft.Dafny {
       string checkActions = "";
       string checkNoAction = " (=> (not (or";
       foreach (Predicate pred in ActionPredicates) {
-        checkActions += " (=> (= action " + pred.Name + ") (and (" + pred.Name + ")))";
+        checkActions += " (=> (= action " + pred.Name + ") (and " + pred.Name + "_fun))"; // TODO add parantheses and stuff if we add parameters to actions
         checkNoAction += " (= action " + pred.Name + ")";
       }
       checkNoAction += ")) (and";
@@ -304,7 +308,9 @@ namespace Microsoft.Dafny {
     public void BuildInvariant() {
       PrevName = InvariantPredicate.Formals[0].Name;
       wr.Write("(define-fun .prop () Bool (! ");
+      wr.Write("(= ");
       wr.Write(InstantiateExpr(InvariantPredicate.Body));
+      wr.Write(" bv_true)");
       wr.Write(" :invar-property 0))\n");
       PrevName = null;
     }
@@ -370,7 +376,7 @@ namespace Microsoft.Dafny {
       GenerateFinitizationHelper(ref allcombs, ref start, exp.BoundVars);
 
       // need to check variables, if of type datatype, then instantiate every instance in implies
-
+      retval += "(ite ";
       retval += "(and ";
       // take body of expression and instantiate for all bounded variables
       for (int i = 0; i < allcombs.Count; ++i) {
@@ -390,6 +396,7 @@ namespace Microsoft.Dafny {
       }
 
       retval += ")";
+      retval += " bv_true bv_false)";
       return retval;
     }
 
@@ -408,7 +415,7 @@ namespace Microsoft.Dafny {
       GenerateFinitizationHelper(ref allcombs, ref start, exp.BoundVars);
 
       // need to check variables, if of type datatype, then instantiate every instance in implies
-
+      retval += "(ite ";
       retval += "(or ";
       // take body of expression and instantiate for all bounded variables
       for (int i = 0; i < allcombs.Count; ++i) {
@@ -425,6 +432,7 @@ namespace Microsoft.Dafny {
       }
 
       retval += ")";
+      retval += " bv_true bv_false)";
       return retval;
     }
 
@@ -469,6 +477,15 @@ namespace Microsoft.Dafny {
     }
 
     public string InstantiateLiteral(Expression e, Dictionary<string, string> replace = null) {
+      LiteralExpr exp = (LiteralExpr)e;
+      if (exp.Value is bool) {
+        if ((bool)exp.Value) {
+          return "bv_true";
+        } else {
+          return "bv_false";
+        }
+      }
+
       return UnhandledCase(e, replace);
     }
 
