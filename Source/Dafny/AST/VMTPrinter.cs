@@ -20,6 +20,7 @@ namespace Microsoft.Dafny {
     private string STATE_MACHINE_DATATYPE_NAME = "DafnyState";
     private string STATE_MACHINE_INIT_PRED_NAME = "Init";
     private string STATE_MACHINE_NEXT_PRED_NAME = "Next";
+    private string STATE_MACHINE_INVARIANT_PRED_NAME = "Invariant";
     private string STATE_MACHINE_RELATION_PREFIX = "Relation";
     private string STATE_MACHINE_ACTION_PREFIX = "Action";
 
@@ -28,8 +29,9 @@ namespace Microsoft.Dafny {
 
     //public Expression InitExpression;
 
-    public Predicate InitPredicate;
-    public Predicate NextPredicate;
+    public Predicate InitPredicate = null;
+    public Predicate NextPredicate = null;
+    public Predicate InvariantPredicate = null;
 
     public string PrevName = null;
 
@@ -37,6 +39,8 @@ namespace Microsoft.Dafny {
 
     // maps name of relation to names of datatypes
     public Dictionary<string, List<string>> RelationDatatypeParams = new Dictionary<string, List<string>>();
+
+    public Dictionary<string, List<string>> RelationCombos = new Dictionary<string, List<string>>();
 
     public List<Predicate> ActionPredicates = new List<Predicate>();
 
@@ -57,9 +61,12 @@ namespace Microsoft.Dafny {
       ParsePredicates(prog);
       BuildRelations();
       BuildInit();
-      // BuildActions();
-      // DeclareActions();
-      // BuildNext();
+      BuildActions();
+      DeclareActionsAndTransitionRelations();
+      BuildNext();
+      BuildInvariant();
+
+      wr.Flush();
     }
 
     public void ParseDatatypes(Program prog) {  // TODO TODO TODO PARSE CONSTRUCTOR(S)
@@ -134,6 +141,10 @@ namespace Microsoft.Dafny {
           }
         }
       }
+
+      Debug.Assert(InitPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_INIT_PRED_NAME + "' predicate.");
+      Debug.Assert(NextPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_NEXT_PRED_NAME + "' predicate.");
+      Debug.Assert(InvariantPredicate != null, "Dafny program is missing the '" + STATE_MACHINE_INVARIANT_PRED_NAME + "' predicate.");
     }
 
     public void ParsePredicate(Predicate pred) {
@@ -152,6 +163,9 @@ namespace Microsoft.Dafny {
                      "Next predicate must take exactly two parameters, of type " + STATE_MACHINE_DATATYPE_NAME
                      + ". The first represents the current/previous state, the second represents the next state.");
         NextPredicate = pred;
+      } else if (name == STATE_MACHINE_INVARIANT_PRED_NAME) {
+        Debug.Assert(pred.Formals.Count == 1, "Invariant predicate must take exactly one parameter, of type " + STATE_MACHINE_DATATYPE_NAME);
+        InvariantPredicate = pred;
       } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
         // Dealing with a relation
         var datatypeParams = new List<string>();
@@ -193,16 +207,27 @@ namespace Microsoft.Dafny {
         wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
                      relation, "bool"); // TODO UNHARDCODE BOOL
       }
+
+      foreach (var (key, val) in RelationCombos) {
+        foreach (var combo in val) {
+          wr.WriteLine("(declare-fun {0} () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          wr.WriteLine("(declare-fun {0}_next () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+        }
+      }
     }
 
     public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex, string relation) {
+      if (currIndex == 0 && !RelationCombos.ContainsKey(relation)) {
+        RelationCombos.Add(relation, new List<string>());
+      }
       if (currIndex == numDatatypes - 1) {
         // Last level, iterate
         for (int lastLevelIter = 0; lastLevelIter < datatypeAmounts[currIndex]; ++lastLevelIter) {
-          var finalStr = str + "_" + RelationDatatypeParams[relation][currIndex] + lastLevelIter;
-          wr.WriteLine("(declare-fun {0} () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          wr.WriteLine("(declare-fun {0}_next () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          RelationCombos[relation].Add(str + "_" + RelationDatatypeParams[relation][currIndex] + lastLevelIter);
+          // wr.WriteLine("(declare-fun {0} () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          // wr.WriteLine("(declare-fun {0}_next () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          // wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
           // Next thing in translate.py for unhardcoding bool:
           // if ret != 'bool_type':
           //   lemmas.append('(is_%s %s)' % (x.sort, name))
@@ -218,6 +243,7 @@ namespace Microsoft.Dafny {
       //base.PrintExpression(InitExpression, false);
       PrevName = InitPredicate.Formals[0].Name;
       NextName = null;
+      wr.Write("\n; Initial state\n");
       wr.Write("(define-fun .init () Bool (! ");
       wr.Write(InstantiateExpr(InitPredicate.Body));
       wr.Write(" :init true))\n");
@@ -231,24 +257,56 @@ namespace Microsoft.Dafny {
         PrevName = pred.Formals[0].Name;
         NextName = pred.Formals[1].Name;
         // TODO NOT DONE NOT DONE NOT DONE
-        wr.Write("(define-fun .init () Bool (! ");
+        wr.Write("(define-fun {0}_fun () Bool (", pred.Name);
         wr.Write(InstantiateExpr(pred.Body));
-        wr.Write(" :init true))\n");
+        wr.Write("))\n");
       }
       PrevName = null;
       NextName = null;
     }
 
+    public void DeclareActionsAndTransitionRelations() {
+      wr.WriteLine("\n; Declare actions");
+
+      var l = Convert.ToInt32(Math.Log2(ActionPredicates.Count));
+      while (TypeLengthSet.Contains(l)) {
+        l += 1;
+      }
+      TypeLengthSet.Add(l);
+
+      wr.WriteLine("(define-sort action_type () (_ BitVec {0}))", l);
+      for (int i = 0; i < ActionPredicates.Count; ++i) {
+        wr.WriteLine("(define-fun {0}() action_type (_ bv{1} {2}))", ActionPredicates[i].Name, i, l);
+      }
+
+      wr.WriteLine("\n; Transition relation");
+      wr.WriteLine("(declare-fun action () action_type)");
+    }
+
     public void BuildNext() {
-      //base.PrintExpression(InitExpression, false);
-      PrevName = NextPredicate.Formals[0].Name;
-      NextName = NextPredicate.Formals[1].Name;
-      // TODO NOT DONE NOT DONE NOT DONE
-      wr.Write("(define-fun .trans NOT DONE NOT DONE NOT DONE () Bool (! ");
-      wr.Write(InstantiateExpr(NextPredicate.Body));
-      wr.Write(" :init true))\n");
+      string checkActions = "";
+      string checkNoAction = " (=> (not (or";
+      foreach (Predicate pred in ActionPredicates) {
+        checkActions += " (=> (= action " + pred.Name + ") (and (" + pred.Name + ")))";
+        checkNoAction += " (= action " + pred.Name + ")";
+      }
+      checkNoAction += ")) (and";
+      foreach (var (key, val) in RelationCombos) {
+        foreach (var combo in val) {
+          checkNoAction += " (= " + combo + " " + combo + "_next)";
+        }
+      }
+      checkNoAction += "))";
+
+      wr.WriteLine("(define-fun .trans () Bool (! (and" + checkActions + checkNoAction + ") :trans true))");
+    }
+
+    public void BuildInvariant() {
+      PrevName = InvariantPredicate.Formals[0].Name;
+      wr.Write("(define-fun .prop () Bool (! ");
+      wr.Write(InstantiateExpr(InvariantPredicate.Body));
+      wr.Write(" :invar-property 0))\n");
       PrevName = null;
-      NextName = null;
     }
 
     public string InstantiateExpr(Expression e, Dictionary<string, string> replace = null) {
@@ -258,6 +316,8 @@ namespace Microsoft.Dafny {
         return InstantiateUnary(e, replace);
       } else if (e is ForallExpr) {
         return InstantiateForall(e, replace);
+      } else if (e is ExistsExpr) {
+        return InstantiateExists(e, replace);
       } else if (e is LiteralExpr) {
         return InstantiateLiteral(e, replace);
       } else if (e is ParensExpression) {
@@ -305,9 +365,6 @@ namespace Microsoft.Dafny {
         replace = new Dictionary<string, string>();
       }
 
-      // TODO: calculate this dictionary
-      // have bound vars
-      // have 
       List<Dictionary<string, string>> allcombs = new List<Dictionary<string, string>>();
       Dictionary<string, string> start = new Dictionary<string, string>();
       GenerateFinitizationHelper(ref allcombs, ref start, exp.BoundVars);
@@ -320,7 +377,47 @@ namespace Microsoft.Dafny {
         foreach (var (key, val) in allcombs[i]) {
           replace.Add(key, val);
         }
+        retval += "(or (= ";
+
         retval += InstantiateExpr(body, replace);
+
+        retval += " bv_true)) ";
+
+
+        foreach (var (key, val) in allcombs[i]) {
+          replace.Remove(key);
+        }
+      }
+
+      retval += ")";
+      return retval;
+    }
+
+    public string InstantiateExists(Expression e, Dictionary<string, string> replace = null) {
+      Debug.Assert(e is ExistsExpr);
+      string retval = "";
+      var exp = (ExistsExpr)e;
+      Expression body = exp.LogicalBody();
+
+      if (replace == null) {
+        replace = new Dictionary<string, string>();
+      }
+
+      List<Dictionary<string, string>> allcombs = new List<Dictionary<string, string>>();
+      Dictionary<string, string> start = new Dictionary<string, string>();
+      GenerateFinitizationHelper(ref allcombs, ref start, exp.BoundVars);
+
+      // need to check variables, if of type datatype, then instantiate every instance in implies
+
+      retval += "(or ";
+      // take body of expression and instantiate for all bounded variables
+      for (int i = 0; i < allcombs.Count; ++i) {
+        foreach (var (key, val) in allcombs[i]) {
+          replace.Add(key, val);
+        }
+        retval += "(or (= ";
+        retval += InstantiateExpr(body, replace);
+        retval += " bv_true)) ";
 
         foreach (var (key, val) in allcombs[i]) {
           replace.Remove(key);
@@ -365,14 +462,14 @@ namespace Microsoft.Dafny {
 
     public string InstantiateNot(Expression e, Dictionary<string, string> replace = null) {
       UnaryOpExpr exp = (UnaryOpExpr)e;
-      string retval = "(ite ";
+      string retval = "(ite (= ";
       retval += InstantiateExpr(exp.E, replace);
-      retval += " bv_false bv_true)";
+      retval += " bv_true) bv_false bv_true)";
       return retval;
     }
 
     public string InstantiateLiteral(Expression e, Dictionary<string, string> replace = null) {
-      return "LITERAL";
+      return UnhandledCase(e, replace);
     }
 
 
@@ -439,14 +536,11 @@ namespace Microsoft.Dafny {
       return retval;
     }
 
-    public string InstantiateFunctionCallExpr(Expression e, Dictionary<string, string> replace = null) {
-      FunctionCallExpr exp = (FunctionCallExpr)e;
-      string name = exp.Name;
+    public string InstantiateFunction(string name, List<Expression> args, Dictionary<string, string> replace = null) {
       string retval = "";
       if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX)) {
         retval += name;
         if (replace != null) {
-          List<Expression> args = exp.Args;
           for (int i = 1; i < args.Count; ++i) {
             NameSegment current = (NameSegment)args[i];
             retval += "_" + replace[current.Name];
@@ -464,43 +558,27 @@ namespace Microsoft.Dafny {
       }
 
       return retval;
+    }
+
+    public string InstantiateFunctionCallExpr(Expression e, Dictionary<string, string> replace = null) {
+      FunctionCallExpr exp = (FunctionCallExpr)e;
+      string name = exp.Name;
+      return InstantiateFunction(name, exp.Args, replace);
     }
 
     public string InstantiateApplySuffixExpr(Expression e, Dictionary<string, string> replace = null) {
       // don't know the difference between function call expr and apply suffix expression...
       ApplySuffix exp = (ApplySuffix)e;
       string name = ((NameSegment)exp.Lhs).Name;
-      string retval = "";
-      if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX)) {
-        retval += name;
-        if (replace != null) {
-          List<Expression> args = exp.Args;
-          for (int i = 1; i < args.Count; ++i) {
-            NameSegment current = (NameSegment)args[i];
-            retval += "_" + replace[current.Name];
-          }
-          NameSegment first = (NameSegment)args[0];
-          if (first.Name == NextName) {
-            retval += "_next";
-          } else if (first.Name != PrevName) {
-            Debug.Assert(false, "invalid name for state machine:" + first.Name);
-          }
-        } else {
-          // is this possible?
-          Debug.Assert(false, "goofball! the impossible happened!");
-        }
-      }
-
-      return retval;
-
+      return InstantiateFunction(name, exp.Args, replace);
     }
 
     public string InstantiateInExpr(Expression e, Dictionary<string, string> replace = null) {
-      return "IN EXPR";
+      return UnhandledCase(e, replace);
     }
 
     public string InstantiateExprDotNameExpr(Expression e, Dictionary<string, string> replace = null) {
-      return "EXPR.NAME";
+      return UnhandledCase(e, replace);
     }
 
 

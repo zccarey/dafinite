@@ -187,9 +187,7 @@ namespace Microsoft.Dafny {
       }
       wr.WriteLine();
       PrintCallGraph(prog.DefaultModuleDef, 0);
-      wr.WriteLine("BEAN BEAN BEAN Done with Call Graph. Printing TopLevelDecls");
       PrintTopLevelDecls(prog.DefaultModuleDef.TopLevelDecls, 0, null, Path.GetFullPath(prog.FullName));
-      wr.WriteLine("BEAN BEAN BEAN Done with TopLevelDecls. Printing PrefixNamedModules' TopLevelDecls");
       foreach (var tup in prog.DefaultModuleDef.PrefixNamedModules) {
         var decls = new List<TopLevelDecl>() { tup.Item2 };
         PrintTopLevelDecls(decls, 0, tup.Item1, Path.GetFullPath(prog.FullName));
@@ -222,27 +220,22 @@ namespace Microsoft.Dafny {
       Contract.Requires(decls != null);
       int i = 0;
       foreach (TopLevelDecl d in decls) {
-        Console.WriteLine("BEAN foreach TopLevelDecl");
         Contract.Assert(d != null);
         if (PrintModeSkipGeneral(d.tok, fileBeingPrinted)) { continue; }
         if (d is OpaqueTypeDecl) {
-          Console.WriteLine("BEAN d is OpaqueTypeDecl");
           var at = (OpaqueTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
           PrintClassMethodHelper("type", at.Attributes, at.Name + TPCharacteristicsSuffix(at.Characteristics), d.TypeArgs);
-          Console.WriteLine("BEAN just ran PrintClassMethodHelper");
           if (at.Members.Count == 0) {
             wr.WriteLine();
           } else {
             wr.WriteLine(" {");
-            Console.WriteLine("BEAN running PrintMembers");
             PrintMembers(at.Members, indent + IndentAmount, fileBeingPrinted);
             Indent(indent);
             wr.WriteLine("}");
           }
         } else if (d is NewtypeDecl) {
-          Console.WriteLine("BEAN d is NewtypeDecl");
           var dd = (NewtypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
@@ -275,7 +268,6 @@ namespace Microsoft.Dafny {
             wr.WriteLine("}");
           }
         } else if (d is SubsetTypeDecl) {
-          Console.WriteLine("BEAN d is SubsetTypeDecl");
           var dd = (SubsetTypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
@@ -305,7 +297,6 @@ namespace Microsoft.Dafny {
           }
           wr.WriteLine();
         } else if (d is TypeSynonymDecl) {
-          Console.WriteLine("BEAN d is TypeSynonymDecl");
           var dd = (TypeSynonymDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
@@ -314,12 +305,10 @@ namespace Microsoft.Dafny {
           PrintType(dd.Rhs);
           wr.WriteLine();
         } else if (d is DatatypeDecl) {
-          Console.WriteLine("BEAN d is DatatypeDecl");
           var dd = (DatatypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           PrintDatatype(dd, indent, fileBeingPrinted);
         } else if (d is IteratorDecl) {
-          Console.WriteLine("BEAN d is IteratorDecl");
           var iter = (IteratorDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           PrintIteratorSignature(iter, indent);
@@ -339,7 +328,6 @@ namespace Microsoft.Dafny {
           }
 
         } else if (d is ClassDecl) {
-          Console.WriteLine("BEAN d is ClassDecl");
           ClassDecl cl = (ClassDecl)d;
           if (!cl.IsDefaultClass) {
             if (i++ != 0) { wr.WriteLine(); }
@@ -352,7 +340,6 @@ namespace Microsoft.Dafny {
           }
 
         } else if (d is ValuetypeDecl) {
-          Console.WriteLine("BEAN d is ValuetypeDecl");
           var vtd = (ValuetypeDecl)d;
           if (i++ != 0) { wr.WriteLine(); }
           Indent(indent);
@@ -367,7 +354,6 @@ namespace Microsoft.Dafny {
           }
 
         } else if (d is ModuleDecl) {
-          Console.WriteLine("BEAN d is ModuleDecl");
           wr.WriteLine();
           Indent(indent);
           if (d is LiteralModuleDecl modDecl) {
@@ -400,7 +386,6 @@ namespace Microsoft.Dafny {
             }
             wr.WriteLine();
           } else if (d is AbstractModuleDecl) {
-            Console.WriteLine("BEAN d is AbstractModuleDecl");
             var dd = (AbstractModuleDecl)d;
 
             wr.Write("import");
@@ -420,7 +405,6 @@ namespace Microsoft.Dafny {
             wr.WriteLine();
 
           } else if (d is ModuleExportDecl) {
-            Console.WriteLine("BEAN d is ModuleExportDecl");
             ModuleExportDecl e = (ModuleExportDecl)d;
             if (!e.IsDefault) {
               wr.Write("export {0}", e.Name);
