@@ -24,6 +24,11 @@ Running Dafny compiler:
     - Relations must take as their first parameter a DafnyState (??? Don't think this is needed, not currently checking)
     - Actions must take exactly two parameters, both DafnyStates.
       The first represents the new state, and the second represents the old/prev state.
+    - There are special Relations (for now) - with suffixes "Exists" and "Equals".
+      EXISTS relations should take (after the DafnyState) one finitized datatype.
+        These will be hardcoded to true.
+      EQUALS relations should take (after the DafnyState) two of the same finitized datatype.
+        These will be hardcoded to true or false depending on the index into the finitized indices.
 - No other predicates allowed (for now)
 
 ========== EXPRESSIONS ==========
