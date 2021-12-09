@@ -23,16 +23,16 @@ predicate RelationClientExists(m: DafnyState, c: Client){
     c in m.clients
 }
 
-predicate RelationDifferentClients(m: DafnyState, c1: Client, c2: Client){
-    && RelationClientExists(m, c1)
-    && RelationClientExists(m, c2)
-    && c1.id != c2.id
+predicate RelationClientEquals(m: DafnyState, c1: Client, c2: Client){
+    && c1 in m.clients
+    && c2 in m.clients
+    && c1.id == c2.id
 }
 
-predicate RelationDifferentServers(m: DafnyState, s1: Server, s2: Server){
-    && RelationServerExists(m, s1)
-    && RelationServerExists(m, s2)
-    && s1.id != s2.id
+predicate RelationServerEquals(m: DafnyState, s1: Server, s2: Server){
+    && s1 in m.servers
+    && s2 in m.servers
+    && s1.id == s2.id
 }
 
 predicate Init(m: DafnyState) {
@@ -41,28 +41,29 @@ predicate Init(m: DafnyState) {
 }
 
 predicate ActionConnect(m: DafnyState, m': DafnyState) {
-    exists c: Client, s: Server ::
-
+	exists c: Client, s: Server ::
         && RelationSemaphore(m, s) // in original state
         && RelationLink(m', c, s)
         && !RelationSemaphore(m', s)
 
-        && (forall cf: Client, sf: Server :: (RelationDifferentClients(m, cf, c) ==> RelationLink(m, cf, sf) == RelationLink(m', cf, sf)))
+        // RelationLink does not change for all other client/server pairs
+        && (forall cf: Client, sf: Server :: (!RelationClientEquals(m, cf, c) ==> (RelationLink(m, cf, sf) == RelationLink(m', cf, sf))))
         
-        && (forall sf: Server :: (RelationDifferentServers(m, sf, s) ==> RelationSemaphore(m, sf) == RelationSemaphore(m', sf)))
+        // RelationSemaphore does not change for all other servers
+        && (forall sf: Server :: (!RelationServerEquals(m, sf, s) ==> (RelationSemaphore(m, sf) == RelationSemaphore(m', sf))))
 }
 
 predicate ActionDisconnect(m: DafnyState, m': DafnyState) {
     exists c: Client, s: Server ::
-
-        && !RelationSemaphore(m, s) // in original state
+		&& RelationLink(m, c, s)
         && !RelationLink(m', c, s)
         && RelationSemaphore(m', s)
 
-        && (forall cf: Client, sf: Server :: (RelationDifferentClients(m, cf, c) ==> RelationLink(m, cf, sf) == RelationLink(m', cf, sf)))
+        // RelationLink does not change for all other client/server pairs
+        && (forall cf: Client, sf: Server :: (!RelationClientEquals(m, cf, c) ==> (RelationLink(m, cf, sf) == RelationLink(m', cf, sf))))
         
-        && (forall sf: Server :: (RelationDifferentServers(m, sf, s) ==> RelationSemaphore(m, sf) == RelationSemaphore(m', sf)))
-
+        // RelationSemaphore does not change for all other servers
+        && (forall sf: Server :: (!RelationServerEquals(m, sf, s) ==> (RelationSemaphore(m, sf) == RelationSemaphore(m', sf))))
 }
 
 predicate Next(m:DafnyState, m':DafnyState) {
@@ -73,10 +74,14 @@ predicate Next(m:DafnyState, m':DafnyState) {
 
 predicate Safety(m: DafnyState)
 {
-    forall c1: Client, c2:Client, s: Server :: (RelationClientExists(m, c1) && RelationClientExists(m, c2) && RelationServerExists(m, s)) ==> (RelationLink(m, c1, s) && RelationLink(m, c2, s) ==> !RelationDifferentClients(m, c1, c2))
+    forall c1: Client, c2:Client, s: Server :: ((RelationClientExists(m, c1) && RelationClientExists(m, c2) && RelationServerExists(m, s)) ==> ((RelationLink(m, c1, s) && RelationLink(m, c2, s)) ==> RelationClientEquals(m, c1, c2)))
 }
 
 /*
+
+// Notes from Manos re: proving protocols correct in Dafny, safety property vs.
+// inductive invariants.
+
 lemma InitImpliesInv(m: DafnyState)
     requires Init(m)
     ensures Inv(m)

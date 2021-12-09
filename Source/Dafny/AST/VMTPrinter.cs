@@ -23,6 +23,8 @@ namespace Microsoft.Dafny {
     private string STATE_MACHINE_SAFETY_PRED_NAME = "Safety";
     private string STATE_MACHINE_RELATION_PREFIX = "Relation";
     private string STATE_MACHINE_ACTION_PREFIX = "Action";
+    private string STATE_MACHINE_EXISTS_SUFFIX = "Exists";
+    private string STATE_MACHINE_EQUALS_SUFFIX = "Equals";
 
     public Dictionary<string, int> Instances;
     public HashSet<int> TypeLengthSet = new HashSet<int> { 0, 1 };
@@ -168,6 +170,19 @@ namespace Microsoft.Dafny {
         InvariantPredicate = pred;
       } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
         // Dealing with a relation
+        if (name.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
+          Debug.Assert(pred.Formals.Count == 3
+                       && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
+                       && pred.Formals[1].Type.ToString() == pred.Formals[2].Type.ToString()
+                       && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
+                       "Predicate '" + name + "' is an EQUALS relation. Must take DafnyState and two of the same finitized datatype.");
+        } else if (name.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
+          Debug.Assert(pred.Formals.Count == 2
+                       && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
+                       && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
+                       "Predicate '" + name + "' is an EXISTS relation. Must take DafnyState and one finitized datatype.");
+        }
+        
         var datatypeParams = new List<string>();
         foreach (Formal f in pred.Formals) {
           string typeName = f.Type.ToString();
@@ -193,7 +208,7 @@ namespace Microsoft.Dafny {
     }
 
     public void BuildRelations() {
-      wr.WriteLine("\n; Declare transition system states");
+      
       foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
         var numDatatypes = datatypeParams.Count;
         var datatypeAmounts = new List<int>(numDatatypes);
@@ -202,17 +217,34 @@ namespace Microsoft.Dafny {
           datatypeAmounts.Add(Instances[datatype]);
         }
 
-        GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0, relation);
+        if (relation.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
+          for (int i = 0; i < datatypeAmounts[0]; ++i) {
+            wr.WriteLine("(define-fun {0}_{1} () bool_type bv_true)", relation, datatypeParams[0] + i);
+          }
+          // wr.WriteLine("(define-fun {0}_next () bool_type (bv_true))", combo);
+        } else if (relation.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
+          for (int i = 0; i < datatypeAmounts[0]; ++i) {
+            for (int j = 0; j < datatypeAmounts[0]; ++j) {
+              string str = relation + "_" + datatypeParams[0] + i + "_" + datatypeParams[0] + j;
+              wr.WriteLine("(define-fun {0} () bool_type {1})", str, i == j ? "bv_true" : "bv_false");
+            }
+          }
+        } else {
+          GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0, relation);
+        }
 
-        wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
-                     relation, "bool"); // TODO UNHARDCODE BOOL
+        // wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
+        //              relation, "bool"); // TODO UNHARDCODE BOOL
       }
 
+      wr.WriteLine("\n; Declare transition system states");
       foreach (var (key, val) in RelationCombos) {
-        foreach (var combo in val) {
-          wr.WriteLine("(declare-fun {0} () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          wr.WriteLine("(declare-fun {0}_next () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+        if (!key.EndsWith(STATE_MACHINE_EXISTS_SUFFIX) && !key.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
+          foreach (var combo in val) {
+            wr.WriteLine("(declare-fun {0} () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+            wr.WriteLine("(declare-fun {0}_next () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+            wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
+          }
         }
       }
     }
