@@ -6,8 +6,10 @@ Running Dafny compiler:
 ========== DATATYPES ==========
 
 - There must be a datatype "DafnyState" that embodies the state.
+    The only parameters it can take are sets of finitized datatypes.
 - All other datatypes are the finitized types specified on the command line.
       NOTE: Perhaps can relax this as long as state-important datatypes are part of the DafnyState ctor???
+      Each finitized datatype must have exactly one constructor.
 - All of the finitized types specificed on the command line must appear in the Dafny program.
 - If a datatype needs a unique ID, its constructor should take an integer parameter "id" ("id: int").
   The "id" parameter will be generally ignored and "identification" will be handled by the finitization logic.

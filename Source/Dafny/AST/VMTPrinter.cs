@@ -8,6 +8,58 @@ using System.Diagnostics;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
+
+
+
+  public class DafnyDatatype {
+    // names and types of a
+     
+    public  enum TYPE{
+      BOOL,
+      INT,
+      // STRING,
+      SET,
+      USER_DEFINED,
+    }
+    public string Name;
+
+    public TYPE T;
+
+    // Used when t == USER_DEFINED & new definition
+    public List<DafnyDatatype> Members = null;
+
+    // Used when t == SET ||
+    public DafnyDatatype Subtype = null; // DafnyDatatypes[this.Subtype]
+  }
+/*
+  TYPEDEF = TypedReference(id:int, semaphore:bool, servers:set<Server>, c: Client)
+
+  <nameclass>{
+    USER_DEFINED
+    name=TYPEDEF
+    members{
+      nameclass{
+        INT
+        name=id
+      },
+      nameclass{
+        BOOL,
+        name=semaphore
+      },
+      nameclass{
+        SET,
+        name=servers
+        Subtype=Server
+      },
+      nameclass{
+        USER_DEFINED,
+        name=c
+        Subtype=Client
+      }
+    }
+  }
+
+*/
   public class VMTPrinter : Printer {
 
     private string VMT_HEADER = @"; Typecast bit to bool
@@ -23,8 +75,8 @@ namespace Microsoft.Dafny {
     private string STATE_MACHINE_SAFETY_PRED_NAME = "Safety";
     private string STATE_MACHINE_RELATION_PREFIX = "Relation";
     private string STATE_MACHINE_ACTION_PREFIX = "Action";
-    private string STATE_MACHINE_EXISTS_SUFFIX = "Exists";
-    private string STATE_MACHINE_EQUALS_SUFFIX = "Equals";
+    // private string STATE_MACHINE_EXISTS_SUFFIX = "Exists";
+    // private string STATE_MACHINE_EQUALS_SUFFIX = "Equals";
 
     public Dictionary<string, int> Instances;
     public HashSet<int> TypeLengthSet = new HashSet<int> { 0, 1 };
@@ -46,6 +98,8 @@ namespace Microsoft.Dafny {
 
     public List<Predicate> ActionPredicates = new List<Predicate>();
 
+    public Dictionary<string, DafnyDatatype> DafnyDatatypes = new Dictionary<string, DafnyDatatype>();
+
     public VMTPrinter(TextWriter wr,
                       Dictionary<string, int> datatypeInstanceCounts,
                       DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything)
@@ -60,8 +114,15 @@ namespace Microsoft.Dafny {
       wr.Write(VMT_HEADER);
 
       ParseDatatypes(prog);
+      foreach (DafnyDatatype datatype in DafnyDatatypes.Values) {
+        Console.WriteLine("Datatype = " + datatype.Name + ", TYPE = " + datatype.T + ", Subtype = " + datatype.Subtype?.Name);
+        foreach(DafnyDatatype member in datatype.Members){
+          Console.WriteLine("\tDatatype = " + member.Name + ", TYPE = " + member.T + ", Subtype = " + member.Subtype?.Name);
+        }
+      }
+      
       ParsePredicates(prog);
-      BuildRelations();
+      BuildStates();
       BuildInit();
       BuildActions();
       DeclareActionsAndTransitionRelations();
@@ -83,7 +144,17 @@ namespace Microsoft.Dafny {
 
           if (name == STATE_MACHINE_DATATYPE_NAME) {
             // Dealing with outer state machine datatype
-            continue;
+            ParseDatatypeCtors(dd);
+            // Constrain DafnyState creation
+            DafnyDatatype dafnyState = DafnyDatatypes[STATE_MACHINE_DATATYPE_NAME];
+            Debug.Assert(dafnyState.Name == STATE_MACHINE_DATATYPE_NAME,
+                         "All-encompassing DafnyDatatype has incorrect name '" + dafnyState.Name + "'");
+            Debug.Assert(dafnyState.T == DafnyDatatype.TYPE.USER_DEFINED,
+                         "All-encompassing DafnyDatatype has incorrect DafnyDatatype.TYPE '" + dafnyState.T + "'");
+            foreach (DafnyDatatype member in dafnyState.Members) {
+              Debug.Assert(member.T == DafnyDatatype.TYPE.SET && member.Subtype.T == DafnyDatatype.TYPE.USER_DEFINED,
+                           "All-encompassing datatype '" + STATE_MACHINE_DATATYPE_NAME + "' can only take as parameters sets of finitized datatypes");
+            }
           } else if (Instances.ContainsKey(name)) {
             // Dealing with one of our finitized datatypes
             ++numFoundFinitizedDatatypes;
@@ -101,33 +172,61 @@ namespace Microsoft.Dafny {
             }
             wr.WriteLine("(define-fun is_" + name + " ((" + name + " " + name + "_type)) Bool (or " + typeCheckString + "))");
 
-            // ParseDatatypeCtors(dd);
+            ParseDatatypeCtors(dd);
           } else {
             Debug.Assert(false, "Datatype '" + name + "' found in Dafny program but no finitization provided on command line.");
           }
         }
       }
 
+      Debug.Assert(DafnyDatatypes.ContainsKey(STATE_MACHINE_DATATYPE_NAME), "No definition found for state machine datatype '" + STATE_MACHINE_DATATYPE_NAME + "'");
       Debug.Assert(numFoundFinitizedDatatypes == Instances.Count, "Command line contains finitized datatype(s) not found in Dafny program.");
     }
 
-    // public void ParseDatatypeCtors(DatatypeDecl dd) {
-    //   Debug.Assert(dd.Ctors.Count == 1, "Datatype '" + dd.Name + "' has more than one constructor. This is not currently handled.");
+    public void ParseDatatypeCtors(DatatypeDecl dd) {
+      Debug.Assert(dd.Ctors.Count == 1, "Datatype '" + dd.Name + "' has more than one constructor. This is not currently handled.");
 
-    //   DatatypeCtor ctor = dd.Ctors[0];
-
-    //   var datatypeParams = new List<string>();
-    //   foreach (Formal f in pred.Formals) {
-    //     string typeName = f.Type.ToString();
-    //     if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
-    //       Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
-    //     }
-    //     if (typeName != STATE_MACHINE_DATATYPE_NAME) {
-    //       datatypeParams.Add(typeName);
-    //     }
-    //   }
-    //   RelationDatatypeParams.Add(name, datatypeParams);
-    // }
+      DatatypeCtor ctor = dd.Ctors[0];
+      DafnyDatatype def = new DafnyDatatype();
+      def.T = DafnyDatatype.TYPE.USER_DEFINED;
+      def.Name = dd.Name;
+      def.Members = new List<DafnyDatatype>();
+      
+      var datatypeParams = new List<string>();
+      foreach (Formal f in ctor.Formals) {
+        string typeName = f.Type.ToString();
+        
+        DafnyDatatype member = new DafnyDatatype();
+        member.Name = f.Name;
+        if (DafnyDatatypes.ContainsKey(typeName)){
+          member.T = DafnyDatatype.TYPE.USER_DEFINED;
+          member.Subtype = DafnyDatatypes[typeName];
+        } else if (typeName.StartsWith("set")) {
+            member.T = DafnyDatatype.TYPE.SET;
+            string subtype = f.Type.TypeArgs[0].ToString();
+            Debug.Assert(DafnyDatatypes.ContainsKey(subtype), "DafnyDatatype subtype '" + subtype + "' not found in user-defined datatype list");
+            member.Subtype = DafnyDatatypes[subtype];
+        } else {
+          switch (typeName) {
+            case "bool":
+              member.T = DafnyDatatype.TYPE.BOOL;
+              break;
+            case "int":
+              member.T = DafnyDatatype.TYPE.INT;
+              break;
+            // case "string":
+            //   member.T = DafnyDatatype.TYPE.STRING;
+            //   break;              
+            default:
+              Debug.Assert(false, "unsupported datatype subtype: " + typeName);
+              break;
+          }
+        }
+        
+        def.Members.Add(member);
+      }
+      DafnyDatatypes.Add(dd.Name, def);
+    }
 
     public void ParsePredicates(Program prog) {
       foreach (TopLevelDecl d in prog.DefaultModuleDef.TopLevelDecls) {
@@ -168,32 +267,32 @@ namespace Microsoft.Dafny {
       } else if (name == STATE_MACHINE_SAFETY_PRED_NAME) {
         Debug.Assert(pred.Formals.Count == 1, "Invariant predicate must take exactly one parameter, of type " + STATE_MACHINE_DATATYPE_NAME);
         InvariantPredicate = pred;
-      } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
-        // Dealing with a relation
-        if (name.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
-          Debug.Assert(pred.Formals.Count == 3
-                       && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
-                       && pred.Formals[1].Type.ToString() == pred.Formals[2].Type.ToString()
-                       && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
-                       "Predicate '" + name + "' is an EQUALS relation. Must take DafnyState and two of the same finitized datatype.");
-        } else if (name.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
-          Debug.Assert(pred.Formals.Count == 2
-                       && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
-                       && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
-                       "Predicate '" + name + "' is an EXISTS relation. Must take DafnyState and one finitized datatype.");
-        }
+      // } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
+      //   // Dealing with a relation
+      //   if (name.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
+      //     Debug.Assert(pred.Formals.Count == 3
+      //                  && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
+      //                  && pred.Formals[1].Type.ToString() == pred.Formals[2].Type.ToString()
+      //                  && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
+      //                  "Predicate '" + name + "' is an EQUALS relation. Must take DafnyState and two of the same finitized datatype.");
+      //   } else if (name.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
+      //     Debug.Assert(pred.Formals.Count == 2
+      //                  && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
+      //                  && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
+      //                  "Predicate '" + name + "' is an EXISTS relation. Must take DafnyState and one finitized datatype.");
+      //   }
         
-        var datatypeParams = new List<string>();
-        foreach (Formal f in pred.Formals) {
-          string typeName = f.Type.ToString();
-          if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
-            Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
-          }
-          if (typeName != STATE_MACHINE_DATATYPE_NAME) {
-            datatypeParams.Add(typeName);
-          }
-        }
-        RelationDatatypeParams.Add(name, datatypeParams);
+      //   var datatypeParams = new List<string>();
+      //   foreach (Formal f in pred.Formals) {
+      //     string typeName = f.Type.ToString();
+      //     if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
+      //       Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
+      //     }
+      //     if (typeName != STATE_MACHINE_DATATYPE_NAME) {
+      //       datatypeParams.Add(typeName);
+      //     }
+      //   }
+      //   RelationDatatypeParams.Add(name, datatypeParams);
       } else if (name.StartsWith(STATE_MACHINE_ACTION_PREFIX) && name != STATE_MACHINE_ACTION_PREFIX) {
         // Dealing with an action
         Debug.Assert(pred.Formals.Count == 2
@@ -207,8 +306,63 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void BuildRelations() {
+    public void BuildStates() {
       
+      wr.WriteLine("\n; Declare transition system states");
+
+      // for each type in finitized data types:
+      //     for each instance of type:
+      //         for each member of type:
+      //             declare-fun instance_member
+      //             declare-fun instance_member_next
+      //             define-fun .instance_member (! instance_member :next instance_member_next)
+
+      foreach((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
+        
+        // No state variables to declare for the top-level state machine
+        if(typename == STATE_MACHINE_DATATYPE_NAME) {
+          continue;
+        }
+
+        for(int i = 0; i < Instances[typename]; ++i) {
+          foreach(DafnyDatatype m in typeobj.Members) {
+
+            // ID fields should not be considered mutable state
+            if(m.Name == "id") {
+              // TODO: hardcode in ID equality "relation"?
+              continue;
+            }
+
+            string stateVariableName = typename + i + "_" + m.Name;
+            string stateVariableType = "";
+            switch(m.T) {
+              case DafnyDatatype.TYPE.INT:
+                stateVariableType = "Int";
+                break;
+              case DafnyDatatype.TYPE.BOOL:
+                stateVariableType = "bool_type";
+                break;
+              // case STRING:
+              //   stateVariableType = /* TODO */;
+              //   break;
+              case DafnyDatatype.TYPE.SET:
+                stateVariableType = "(Array " + m.Subtype.Name + "_type bool_type)";
+                break;
+              case DafnyDatatype.TYPE.USER_DEFINED:
+                stateVariableType = m.Subtype.Name + "_type";
+                break;
+              default:
+                Debug.Assert(false, "unexpected member type");
+                break;
+            }
+            wr.WriteLine("(declare-fun {0} () {1})", stateVariableName, stateVariableType);
+            wr.WriteLine("(declare-fun {0}_next () {1})", stateVariableName, stateVariableType);
+            wr.WriteLine("(define-fun .{0} () {1} (! {0} :next {0}_next))", stateVariableName, stateVariableType);
+          }
+        }
+      }
+      
+      /*
       foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
         var numDatatypes = datatypeParams.Count;
         var datatypeAmounts = new List<int>(numDatatypes);
@@ -247,6 +401,7 @@ namespace Microsoft.Dafny {
           }
         }
       }
+      */
     }
 
     public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex, string relation) {
@@ -345,6 +500,11 @@ namespace Microsoft.Dafny {
       wr.Write(" :invar-property 0))\n");
       PrevName = null;
     }
+
+    // set membership:
+    // s in c.connServers
+    // Server0 in Client1_ConnServers
+    // (select Client1_ConnServers Server0)
 
     public string InstantiateExpr(Expression e, Dictionary<string, string> replace = null) {
       if (e is BinaryExpr) {
@@ -622,6 +782,20 @@ namespace Microsoft.Dafny {
     }
 
     public string InstantiateInExpr(Expression e, Dictionary<string, string> replace = null) {
+      // use vmt array stuff
+      BinaryExpr exp = (BinaryExpr) e;
+      Expression first = exp.E0;
+      Expression second = exp.E1;
+      if(replace != null){
+        /*
+        may need to resolve each half of the expression
+        return 
+        */
+        
+      }
+      else{
+        Debug.Assert(false, "the impossible happened! 'in' statement with no finitization!");
+      }
       return UnhandledCase(e, replace);
     }
 

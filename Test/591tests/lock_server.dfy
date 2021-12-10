@@ -1,7 +1,7 @@
-type Id = int
+// type Id = int
 
-datatype Server = Server(id:Id, semaphore:bool)
-datatype Client = Client(id:Id, connServers:set<Server>)
+datatype Server = Server(id:int, semaphore:bool)
+datatype Client = Client(id:int, connServers:set<Server>)
 datatype DafnyState = DafnyState(clients:set<Client>, servers:set<Server>)
 
 // predicate RelationLink(m: DafnyState, c: Client, s: Server)
