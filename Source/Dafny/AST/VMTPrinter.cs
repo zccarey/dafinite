@@ -9,15 +9,41 @@ using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
 
-
-
   public class DafnyDatatype {
-    // names and types of a
+    /*
+    EXAMPLE:
+
+    Whatever = SomeCtor(id:int, semaphore:bool, servers:set<Server>, c: Client)
+
+    DafnyDatatype{
+      USER_DEFINED
+      name=Whatever
+      members{
+        DafnyDatatype{
+          INT
+          name=id
+        },
+        DafnyDatatype{
+          BOOL,
+          name=semaphore
+        },
+        DafnyDatatype{
+          SET,
+          name=servers
+          Subtype=(DafnyDatatype)Server
+        },
+        DafnyDatatype{
+          USER_DEFINED,
+          name=c
+          Subtype=(DafnyDatatype)Client
+        }
+      }
+    }
+  */
      
     public  enum TYPE{
       BOOL,
       INT,
-      // STRING,
       SET,
       USER_DEFINED,
     }
@@ -31,35 +57,7 @@ namespace Microsoft.Dafny {
     // Used when t == SET ||
     public DafnyDatatype Subtype = null; // DafnyDatatypes[this.Subtype]
   }
-/*
-  TYPEDEF = TypedReference(id:int, semaphore:bool, servers:set<Server>, c: Client)
 
-  <nameclass>{
-    USER_DEFINED
-    name=TYPEDEF
-    members{
-      nameclass{
-        INT
-        name=id
-      },
-      nameclass{
-        BOOL,
-        name=semaphore
-      },
-      nameclass{
-        SET,
-        name=servers
-        Subtype=Server
-      },
-      nameclass{
-        USER_DEFINED,
-        name=c
-        Subtype=Client
-      }
-    }
-  }
-
-*/
   public class VMTPrinter : Printer {
 
     private string VMT_HEADER = @"; Typecast bit to bool
@@ -73,16 +71,10 @@ namespace Microsoft.Dafny {
     private string STATE_MACHINE_INIT_PRED_NAME = "Init";
     private string STATE_MACHINE_NEXT_PRED_NAME = "Next";
     private string STATE_MACHINE_SAFETY_PRED_NAME = "Safety";
-    private string STATE_MACHINE_RELATION_PREFIX = "Relation";
     private string STATE_MACHINE_ACTION_PREFIX = "Action";
-    // private string STATE_MACHINE_EXISTS_SUFFIX = "Exists";
-    // private string STATE_MACHINE_EQUALS_SUFFIX = "Equals";
 
     public Dictionary<string, int> Instances;
     public HashSet<int> TypeLengthSet = new HashSet<int> { 0, 1 };
-
-    //public Expression InitExpression;
-
     public Predicate InitPredicate = null;
     public Predicate NextPredicate = null;
     public Predicate InvariantPredicate = null;
@@ -114,13 +106,6 @@ namespace Microsoft.Dafny {
       wr.Write(VMT_HEADER);
 
       ParseDatatypes(prog);
-      foreach (DafnyDatatype datatype in DafnyDatatypes.Values) {
-        Console.WriteLine("Datatype = " + datatype.Name + ", TYPE = " + datatype.T + ", Subtype = " + datatype.Subtype?.Name);
-        foreach(DafnyDatatype member in datatype.Members){
-          Console.WriteLine("\tDatatype = " + member.Name + ", TYPE = " + member.T + ", Subtype = " + member.Subtype?.Name);
-        }
-      }
-      
       ParsePredicates(prog);
       BuildStates();
       BuildInit();
@@ -132,7 +117,7 @@ namespace Microsoft.Dafny {
       wr.Flush();
     }
 
-    public void ParseDatatypes(Program prog) {  // TODO TODO TODO PARSE CONSTRUCTOR(S)
+    public void ParseDatatypes(Program prog) {
       wr.WriteLine("\n; Define and enumerate transition system parameters");
 
       int numFoundFinitizedDatatypes = 0;
@@ -213,10 +198,7 @@ namespace Microsoft.Dafny {
               break;
             case "int":
               member.T = DafnyDatatype.TYPE.INT;
-              break;
-            // case "string":
-            //   member.T = DafnyDatatype.TYPE.STRING;
-            //   break;              
+              break;            
             default:
               Debug.Assert(false, "unsupported datatype subtype: " + typeName);
               break;
@@ -267,32 +249,6 @@ namespace Microsoft.Dafny {
       } else if (name == STATE_MACHINE_SAFETY_PRED_NAME) {
         Debug.Assert(pred.Formals.Count == 1, "Invariant predicate must take exactly one parameter, of type " + STATE_MACHINE_DATATYPE_NAME);
         InvariantPredicate = pred;
-      // } else if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX) && name != STATE_MACHINE_RELATION_PREFIX) {
-      //   // Dealing with a relation
-      //   if (name.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
-      //     Debug.Assert(pred.Formals.Count == 3
-      //                  && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
-      //                  && pred.Formals[1].Type.ToString() == pred.Formals[2].Type.ToString()
-      //                  && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
-      //                  "Predicate '" + name + "' is an EQUALS relation. Must take DafnyState and two of the same finitized datatype.");
-      //   } else if (name.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
-      //     Debug.Assert(pred.Formals.Count == 2
-      //                  && pred.Formals[0].Type.ToString() == STATE_MACHINE_DATATYPE_NAME
-      //                  && pred.Formals[1].Type.ToString() != STATE_MACHINE_DATATYPE_NAME,
-      //                  "Predicate '" + name + "' is an EXISTS relation. Must take DafnyState and one finitized datatype.");
-      //   }
-        
-      //   var datatypeParams = new List<string>();
-      //   foreach (Formal f in pred.Formals) {
-      //     string typeName = f.Type.ToString();
-      //     if (typeName != STATE_MACHINE_DATATYPE_NAME && !Instances.Keys.Contains(typeName)) {
-      //       Debug.Assert(false, "Relation '" + name + "' passed parameter of type '" + typeName + "' not in state machine datatypes");
-      //     }
-      //     if (typeName != STATE_MACHINE_DATATYPE_NAME) {
-      //       datatypeParams.Add(typeName);
-      //     }
-      //   }
-      //   RelationDatatypeParams.Add(name, datatypeParams);
       } else if (name.StartsWith(STATE_MACHINE_ACTION_PREFIX) && name != STATE_MACHINE_ACTION_PREFIX) {
         // Dealing with an action
         Debug.Assert(pred.Formals.Count == 2
@@ -307,29 +263,32 @@ namespace Microsoft.Dafny {
     }
 
     public void BuildStates() {
-      
       wr.WriteLine("\n; Declare transition system states");
 
-      // for each type in finitized data types:
-      //     for each instance of type:
-      //         for each member of type:
-      //             declare-fun instance_member
-      //             declare-fun instance_member_next
-      //             define-fun .instance_member (! instance_member :next instance_member_next)
-
       foreach((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
-        
-        // No state variables to declare for the top-level state machine
+        // Parse DafnyState slightly differently
         if(typename == STATE_MACHINE_DATATYPE_NAME) {
+          foreach(DafnyDatatype m in typeobj.Members) {
+            Debug.Assert(m.T == DafnyDatatype.TYPE.SET && m.Subtype.T == DafnyDatatype.TYPE.USER_DEFINED,
+                         "All-encompassing datatype '" + STATE_MACHINE_DATATYPE_NAME + "' can only take as parameters sets of finitized datatypes");
+            
+            for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++ setSubtypeInstIndx) {
+              string str = STATE_MACHINE_DATATYPE_NAME + "_" + m.Name + "_" + m.Subtype.Name + setSubtypeInstIndx;
+              wr.WriteLine("(define-fun {0} () bool_type bv_true)", str);
+              wr.WriteLine("(define-fun {0}_next () bool_type bv_true)", str);
+            }
+          }
           continue;
         }
 
         for(int i = 0; i < Instances[typename]; ++i) {
           foreach(DafnyDatatype m in typeobj.Members) {
-
+            
             // ID fields should not be considered mutable state
             if(m.Name == "id") {
-              // TODO: hardcode in ID equality "relation"?
+              Debug.Assert(m.T == DafnyDatatype.TYPE.INT, "Special 'id' field in finitized datatypes must be of type int");
+              wr.WriteLine("(define-fun {0}{1}_id () Int {1})", typename, i);
+              wr.WriteLine("(define-fun {0}{1}_id_next () Int {1})", typename, i);
               continue;
             }
 
@@ -342,12 +301,18 @@ namespace Microsoft.Dafny {
               case DafnyDatatype.TYPE.BOOL:
                 stateVariableType = "bool_type";
                 break;
-              // case STRING:
-              //   stateVariableType = /* TODO */;
-              //   break;
               case DafnyDatatype.TYPE.SET:
-                stateVariableType = "(Array " + m.Subtype.Name + "_type bool_type)";
-                break;
+                // Create a VMT object for every possible membership in the set.
+                // We do it this way because the model checker seems to require that arrays be initialized
+                // as whole constants (which we can't easily constrain in Dafny) for the model checker to
+                // be able to check initial values at specific indices.
+                for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++ setSubtypeInstIndx) {
+                  string str = stateVariableName + "_" + m.Subtype.Name + setSubtypeInstIndx;
+                  wr.WriteLine("(declare-fun {0} () bool_type)", str);
+                  wr.WriteLine("(declare-fun {0}_next () bool_type)", str);
+                  wr.WriteLine("(define-fun .{0} () bool_type (! {0} :next {0}_next))", str);
+                }
+                continue;
               case DafnyDatatype.TYPE.USER_DEFINED:
                 stateVariableType = m.Subtype.Name + "_type";
                 break;
@@ -361,73 +326,9 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      
-      /*
-      foreach (var (relation, datatypeParams) in RelationDatatypeParams) {
-        var numDatatypes = datatypeParams.Count;
-        var datatypeAmounts = new List<int>(numDatatypes);
-
-        foreach (var datatype in datatypeParams) {
-          datatypeAmounts.Add(Instances[datatype]);
-        }
-
-        if (relation.EndsWith(STATE_MACHINE_EXISTS_SUFFIX)) {
-          for (int i = 0; i < datatypeAmounts[0]; ++i) {
-            wr.WriteLine("(define-fun {0}_{1} () bool_type bv_true)", relation, datatypeParams[0] + i);
-          }
-          // wr.WriteLine("(define-fun {0}_next () bool_type (bv_true))", combo);
-        } else if (relation.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
-          for (int i = 0; i < datatypeAmounts[0]; ++i) {
-            for (int j = 0; j < datatypeAmounts[0]; ++j) {
-              string str = relation + "_" + datatypeParams[0] + i + "_" + datatypeParams[0] + j;
-              wr.WriteLine("(define-fun {0} () bool_type {1})", str, i == j ? "bv_true" : "bv_false");
-            }
-          }
-        } else {
-          GenRelationCombos(numDatatypes, datatypeAmounts, relation, 0, relation);
-        }
-
-        // wr.WriteLine("(define-fun update_{0} ((newv {1}_type) (prev {1}_type) (cond Bool) (val {1}_type)) Bool (= newv (ite cond val prev)))",
-        //              relation, "bool"); // TODO UNHARDCODE BOOL
-      }
-
-      wr.WriteLine("\n; Declare transition system states");
-      foreach (var (key, val) in RelationCombos) {
-        if (!key.EndsWith(STATE_MACHINE_EXISTS_SUFFIX) && !key.EndsWith(STATE_MACHINE_EQUALS_SUFFIX)) {
-          foreach (var combo in val) {
-            wr.WriteLine("(declare-fun {0} () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-            wr.WriteLine("(declare-fun {0}_next () {1}_type)", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-            wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", combo, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          }
-        }
-      }
-      */
-    }
-
-    public void GenRelationCombos(int numDatatypes, List<int> datatypeAmounts, string str, int currIndex, string relation) {
-      if (currIndex == 0 && !RelationCombos.ContainsKey(relation)) {
-        RelationCombos.Add(relation, new List<string>());
-      }
-      if (currIndex == numDatatypes - 1) {
-        // Last level, iterate
-        for (int lastLevelIter = 0; lastLevelIter < datatypeAmounts[currIndex]; ++lastLevelIter) {
-          RelationCombos[relation].Add(str + "_" + RelationDatatypeParams[relation][currIndex] + lastLevelIter);
-          // wr.WriteLine("(declare-fun {0} () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          // wr.WriteLine("(declare-fun {0}_next () {1}_type)", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          // wr.WriteLine("(define-fun .{0} () {1}_type (! {0} :next {0}_next))", finalStr, "bool"); // TODO TODO TODO UNHARDCODE BOOL
-          // Next thing in translate.py for unhardcoding bool:
-          // if ret != 'bool_type':
-          //   lemmas.append('(is_%s %s)' % (x.sort, name))
-        }
-      } else {
-        for (int intraLevelIter = 0; intraLevelIter < datatypeAmounts[currIndex]; ++intraLevelIter) {
-          GenRelationCombos(numDatatypes, datatypeAmounts, str + "_" + RelationDatatypeParams[relation][currIndex] + intraLevelIter, currIndex + 1, relation);
-        }
-      }
     }
 
     public void BuildInit() {
-      //base.PrintExpression(InitExpression, false);
       PrevName = InitPredicate.Formals[0].Name;
       NextName = null;
       wr.Write("\n; Initial state\n");
@@ -441,11 +342,10 @@ namespace Microsoft.Dafny {
     }
 
     public void BuildActions() {
-      //base.PrintExpression(InitExpression, false);
       foreach (Predicate pred in ActionPredicates) {
         PrevName = pred.Formals[0].Name;
         NextName = pred.Formals[1].Name;
-        wr.Write("(define-fun {0}_fun () Bool ", pred.Name);
+        wr.Write("\n(define-fun {0}_fun () Bool ", pred.Name);
         wr.Write("(= ");
         wr.Write(InstantiateExpr(pred.Body));
         wr.Write(" bv_true)");
@@ -481,9 +381,32 @@ namespace Microsoft.Dafny {
         checkNoAction += " (= action " + pred.Name + ")";
       }
       checkNoAction += ")) (and";
-      foreach (var (key, val) in RelationCombos) {
-        foreach (var combo in val) {
-          checkNoAction += " (= " + combo + " " + combo + "_next)";
+
+      foreach((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
+        // ignore top-level state machine object
+        if(typename == STATE_MACHINE_DATATYPE_NAME) {
+          continue;
+        }
+
+        for(int i = 0; i < Instances[typename]; ++i) {
+          foreach(DafnyDatatype m in typeobj.Members) {
+            if(m.Name == "id") {
+              // ID fields are not mutable state
+              continue;
+            }
+            else {
+              // ensure that state variable does not change on transition
+              string stateVariableName = typename + i + "_" + m.Name;
+              if(m.T == DafnyDatatype.TYPE.SET) {
+                for(int j = 0; j < Instances[m.Subtype.Name]; ++j) {
+                  string s = stateVariableName + "_" + m.Subtype.Name + j;
+                  checkNoAction += " (= " + s + " " + s + "_next)";
+                }
+              } else {
+                checkNoAction += " (= " + stateVariableName + " " + stateVariableName + "_next)";
+              }
+            }
+          }
         }
       }
       checkNoAction += "))";
@@ -500,11 +423,6 @@ namespace Microsoft.Dafny {
       wr.Write(" :invar-property 0))\n");
       PrevName = null;
     }
-
-    // set membership:
-    // s in c.connServers
-    // Server0 in Client1_ConnServers
-    // (select Client1_ConnServers Server0)
 
     public string InstantiateExpr(Expression e, Dictionary<string, string> replace = null) {
       if (e is BinaryExpr) {
@@ -525,13 +443,14 @@ namespace Microsoft.Dafny {
         return InstantiateExprDotNameExpr(e, replace);
       } else if (e is ApplySuffix) {
         return InstantiateApplySuffixExpr(e, replace);
+      } else if (e is NameSegment) {
+        return InstantiateNameSegment(e, replace);
       } else {
         return UnhandledCase(e, replace);
       }
 
     }
     public string InstantiateBinaryExpr(Expression e, Dictionary<string, string> replace = null) {
-      //assert(e is BinaryExpr);
       Debug.Assert(e is BinaryExpr);
       var exp = (BinaryExpr)e;
       switch (exp.Op) {
@@ -702,7 +621,7 @@ namespace Microsoft.Dafny {
 
     public string InstantiateOr(Expression e, Dictionary<string, string> replace = null) {
       BinaryExpr exp = (BinaryExpr)e;
-      Debug.Assert(exp.Op == BinaryExpr.Opcode.And);
+      Debug.Assert(exp.Op == BinaryExpr.Opcode.Or);
       string retval = "(ite (or (= ";
       retval += InstantiateExpr(exp.E0, replace);
       retval += " bv_true) (= ";
@@ -746,25 +665,7 @@ namespace Microsoft.Dafny {
 
     public string InstantiateFunction(string name, List<Expression> args, Dictionary<string, string> replace = null) {
       string retval = "";
-      if (name.StartsWith(STATE_MACHINE_RELATION_PREFIX)) {
-        retval += name;
-        if (replace != null) {
-          for (int i = 1; i < args.Count; ++i) {
-            NameSegment current = (NameSegment)args[i];
-            retval += "_" + replace[current.Name];
-          }
-          NameSegment first = (NameSegment)args[0];
-          if (first.Name == NextName) {
-            retval += "_next";
-          } else if (first.Name != PrevName) {
-            Debug.Assert(false, "invalid name for state machine:" + first.Name);
-          }
-        } else {
-          // is this possible?
-          Debug.Assert(false, "goofball! the impossible happened!");
-        }
-      }
-
+      Debug.Assert(false, "calling functions unsupported currently");
       return retval;
     }
 
@@ -786,24 +687,58 @@ namespace Microsoft.Dafny {
       BinaryExpr exp = (BinaryExpr) e;
       Expression first = exp.E0;
       Expression second = exp.E1;
-      if(replace != null){
-        /*
-        may need to resolve each half of the expression
-        return 
-        */
-        
+      
+      string firsthalf = InstantiateExpr(first, replace);
+      string secondhalf = InstantiateExpr(second, replace);
+      bool need_next = false;
+      if(secondhalf.EndsWith("_next")){
+        secondhalf = secondhalf.Remove(secondhalf.Count()-5, 5);
+        need_next = true;
       }
-      else{
-        Debug.Assert(false, "the impossible happened! 'in' statement with no finitization!");
+      if(firsthalf.EndsWith("_next")){
+        firsthalf = firsthalf.Remove(firsthalf.Count()-5, 5);
+        need_next = true;
       }
-      return UnhandledCase(e, replace);
+      string retval = secondhalf + "_" + firsthalf;
+      if(need_next){
+        retval += "_next";
+      }
+      return retval;
     }
 
     public string InstantiateExprDotNameExpr(Expression e, Dictionary<string, string> replace = null) {
-      return UnhandledCase(e, replace);
+      ExprDotName exp = (ExprDotName) e;
+      Expression lhs = exp.Lhs;
+      string rhs = exp.SuffixName;
+      string retval = "";
+      Debug.Assert(lhs is NameSegment, "complex expression for ExprDotName lhs unsupported");
+      Debug.Assert(replace != null, "the impossible happened! ExprDotName with no finitization!");
+      NameSegment obj = (NameSegment) lhs;
+
+      if(obj.Name == PrevName || obj.Name == NextName){
+        // state machine
+        retval += "DafnyState_" + rhs;
+        if(obj.Name == NextName){
+          retval += "_next";
+        }
+      }
+      else{
+        retval += replace[obj.Name]+ "_" + rhs;
+        if(obj.Name.EndsWith("'")){
+          retval += "_next";
+        }
+      }
+      return retval;
     }
 
+    public string InstantiateNameSegment(Expression e, Dictionary<string, string> replace = null){
+      Debug.Assert(replace != null, "the impossible happened! name segment not finite?");
+      NameSegment exp = (NameSegment) e;
+      if(exp.Name.EndsWith("'")){
+        return replace[exp.Name] + "_next";
+      }
+      return replace[exp.Name];
+    }
 
   }
-
 }
