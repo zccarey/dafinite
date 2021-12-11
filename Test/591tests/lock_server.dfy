@@ -7,7 +7,7 @@ predicate Init(m: DafnyState) {
     // Holding semaphore / connServers constant means existence of multiple items in set implies they have different IDs
     // (because there are no duplicates)
     && (forall s: Server :: s in m.servers ==> s.semaphore)
-    && (forall c: Client, s: Server :: (c in m.clients && s in m.servers) ==> !(s in c.connServers))
+    && (forall c: Client, s: Server :: (c in m.clients && s in m.servers) ==> (s !in c.connServers))
 }
 
 predicate ActionConnect(m: DafnyState, m': DafnyState) {
@@ -78,7 +78,7 @@ predicate ActionDisconnect(m: DafnyState, m': DafnyState) {
 		&& s in c.connServers // the client and server are linked
 
 		// requirements on next state
-		&& !(s' in c'.connServers) // the client and server are not linked
+		&& s' !in c'.connServers // the client and server are not linked
 		&& s'.semaphore            // the server's semaphore is true
 
 		// requirements on the rest of the state not changing

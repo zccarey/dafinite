@@ -40,8 +40,8 @@ namespace Microsoft.Dafny {
       }
     }
   */
-     
-    public  enum TYPE{
+
+    public enum TYPE {
       BOOL,
       INT,
       SET,
@@ -100,8 +100,7 @@ namespace Microsoft.Dafny {
     }
 
     public override void PrintProgram(Program prog, bool afterResolver) {
-      Console.WriteLine("Creating finite instance in VMT. Datatype instance counts:");
-      Console.WriteLine(Instances);
+      Console.WriteLine("Creating finite instance in VMT.");
 
       wr.Write(VMT_HEADER);
 
@@ -176,21 +175,21 @@ namespace Microsoft.Dafny {
       def.T = DafnyDatatype.TYPE.USER_DEFINED;
       def.Name = dd.Name;
       def.Members = new List<DafnyDatatype>();
-      
+
       var datatypeParams = new List<string>();
       foreach (Formal f in ctor.Formals) {
         string typeName = f.Type.ToString();
-        
+
         DafnyDatatype member = new DafnyDatatype();
         member.Name = f.Name;
-        if (DafnyDatatypes.ContainsKey(typeName)){
+        if (DafnyDatatypes.ContainsKey(typeName)) {
           member.T = DafnyDatatype.TYPE.USER_DEFINED;
           member.Subtype = DafnyDatatypes[typeName];
         } else if (typeName.StartsWith("set")) {
-            member.T = DafnyDatatype.TYPE.SET;
-            string subtype = f.Type.TypeArgs[0].ToString();
-            Debug.Assert(DafnyDatatypes.ContainsKey(subtype), "DafnyDatatype subtype '" + subtype + "' not found in user-defined datatype list");
-            member.Subtype = DafnyDatatypes[subtype];
+          member.T = DafnyDatatype.TYPE.SET;
+          string subtype = f.Type.TypeArgs[0].ToString();
+          Debug.Assert(DafnyDatatypes.ContainsKey(subtype), "DafnyDatatype subtype '" + subtype + "' not found in user-defined datatype list");
+          member.Subtype = DafnyDatatypes[subtype];
         } else {
           switch (typeName) {
             case "bool":
@@ -198,13 +197,13 @@ namespace Microsoft.Dafny {
               break;
             case "int":
               member.T = DafnyDatatype.TYPE.INT;
-              break;            
+              break;
             default:
               Debug.Assert(false, "unsupported datatype subtype: " + typeName);
               break;
           }
         }
-        
+
         def.Members.Add(member);
       }
       DafnyDatatypes.Add(dd.Name, def);
@@ -265,14 +264,14 @@ namespace Microsoft.Dafny {
     public void BuildStates() {
       wr.WriteLine("\n; Declare transition system states");
 
-      foreach((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
+      foreach ((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
         // Parse DafnyState slightly differently
-        if(typename == STATE_MACHINE_DATATYPE_NAME) {
-          foreach(DafnyDatatype m in typeobj.Members) {
+        if (typename == STATE_MACHINE_DATATYPE_NAME) {
+          foreach (DafnyDatatype m in typeobj.Members) {
             Debug.Assert(m.T == DafnyDatatype.TYPE.SET && m.Subtype.T == DafnyDatatype.TYPE.USER_DEFINED,
                          "All-encompassing datatype '" + STATE_MACHINE_DATATYPE_NAME + "' can only take as parameters sets of finitized datatypes");
-            
-            for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++ setSubtypeInstIndx) {
+
+            for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++setSubtypeInstIndx) {
               string str = STATE_MACHINE_DATATYPE_NAME + "_" + m.Name + "_" + m.Subtype.Name + setSubtypeInstIndx;
               wr.WriteLine("(define-fun {0} () bool_type bv_true)", str);
               wr.WriteLine("(define-fun {0}_next () bool_type bv_true)", str);
@@ -281,11 +280,11 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        for(int i = 0; i < Instances[typename]; ++i) {
-          foreach(DafnyDatatype m in typeobj.Members) {
-            
+        for (int i = 0; i < Instances[typename]; ++i) {
+          foreach (DafnyDatatype m in typeobj.Members) {
+
             // ID fields should not be considered mutable state
-            if(m.Name == "id") {
+            if (m.Name == "id") {
               Debug.Assert(m.T == DafnyDatatype.TYPE.INT, "Special 'id' field in finitized datatypes must be of type int");
               wr.WriteLine("(define-fun {0}{1}_id () Int {1})", typename, i);
               wr.WriteLine("(define-fun {0}{1}_id_next () Int {1})", typename, i);
@@ -294,7 +293,7 @@ namespace Microsoft.Dafny {
 
             string stateVariableName = typename + i + "_" + m.Name;
             string stateVariableType = "";
-            switch(m.T) {
+            switch (m.T) {
               case DafnyDatatype.TYPE.INT:
                 stateVariableType = "Int";
                 break;
@@ -306,7 +305,7 @@ namespace Microsoft.Dafny {
                 // We do it this way because the model checker seems to require that arrays be initialized
                 // as whole constants (which we can't easily constrain in Dafny) for the model checker to
                 // be able to check initial values at specific indices.
-                for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++ setSubtypeInstIndx) {
+                for (int setSubtypeInstIndx = 0; setSubtypeInstIndx < Instances[m.Subtype.Name]; ++setSubtypeInstIndx) {
                   string str = stateVariableName + "_" + m.Subtype.Name + setSubtypeInstIndx;
                   wr.WriteLine("(declare-fun {0} () bool_type)", str);
                   wr.WriteLine("(declare-fun {0}_next () bool_type)", str);
@@ -382,23 +381,22 @@ namespace Microsoft.Dafny {
       }
       checkNoAction += ")) (and";
 
-      foreach((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
+      foreach ((string typename, DafnyDatatype typeobj) in DafnyDatatypes) {
         // ignore top-level state machine object
-        if(typename == STATE_MACHINE_DATATYPE_NAME) {
+        if (typename == STATE_MACHINE_DATATYPE_NAME) {
           continue;
         }
 
-        for(int i = 0; i < Instances[typename]; ++i) {
-          foreach(DafnyDatatype m in typeobj.Members) {
-            if(m.Name == "id") {
+        for (int i = 0; i < Instances[typename]; ++i) {
+          foreach (DafnyDatatype m in typeobj.Members) {
+            if (m.Name == "id") {
               // ID fields are not mutable state
               continue;
-            }
-            else {
+            } else {
               // ensure that state variable does not change on transition
               string stateVariableName = typename + i + "_" + m.Name;
-              if(m.T == DafnyDatatype.TYPE.SET) {
-                for(int j = 0; j < Instances[m.Subtype.Name]; ++j) {
+              if (m.T == DafnyDatatype.TYPE.SET) {
+                for (int j = 0; j < Instances[m.Subtype.Name]; ++j) {
                   string s = stateVariableName + "_" + m.Subtype.Name + j;
                   checkNoAction += " (= " + s + " " + s + "_next)";
                 }
@@ -466,6 +464,8 @@ namespace Microsoft.Dafny {
           return InstantiateNotEqual(e, replace);
         case BinaryExpr.Opcode.In:
           return InstantiateInExpr(e, replace);
+        case BinaryExpr.Opcode.NotIn:
+          return InstantiateNotInExpr(e, replace);
         default:
           return UnhandledCase(e, replace);
       }
@@ -682,59 +682,72 @@ namespace Microsoft.Dafny {
       return InstantiateFunction(name, exp.Args, replace);
     }
 
+    public string InstantiateNotInExpr(Expression e, Dictionary<string, string> replace = null) {
+      BinaryExpr exp = (BinaryExpr)e;
+      Debug.Assert(exp.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet, "'not in' only supported with sets currently");
+      string retval = "(ite (= ";
+      retval += InstantiateSetMembership(e, replace);
+      retval += " bv_true) bv_false bv_true)";
+      return retval;
+    }
+
     public string InstantiateInExpr(Expression e, Dictionary<string, string> replace = null) {
       // use vmt array stuff
-      BinaryExpr exp = (BinaryExpr) e;
+      BinaryExpr exp = (BinaryExpr)e;
+      Debug.Assert(exp.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet, "'in' only supported with sets currently");
+      return InstantiateSetMembership(e, replace);
+    }
+
+    public string InstantiateSetMembership(Expression e, Dictionary<string, string> replace = null) {
+      BinaryExpr exp = (BinaryExpr)e;
       Expression first = exp.E0;
       Expression second = exp.E1;
-      
+
       string firsthalf = InstantiateExpr(first, replace);
       string secondhalf = InstantiateExpr(second, replace);
       bool need_next = false;
-      if(secondhalf.EndsWith("_next")){
-        secondhalf = secondhalf.Remove(secondhalf.Count()-5, 5);
+      if (secondhalf.EndsWith("_next")) {
+        secondhalf = secondhalf.Remove(secondhalf.Count() - 5, 5);
         need_next = true;
       }
-      if(firsthalf.EndsWith("_next")){
-        firsthalf = firsthalf.Remove(firsthalf.Count()-5, 5);
+      if (firsthalf.EndsWith("_next")) {
+        firsthalf = firsthalf.Remove(firsthalf.Count() - 5, 5);
         need_next = true;
       }
       string retval = secondhalf + "_" + firsthalf;
-      if(need_next){
+      if (need_next) {
         retval += "_next";
       }
       return retval;
     }
-
     public string InstantiateExprDotNameExpr(Expression e, Dictionary<string, string> replace = null) {
-      ExprDotName exp = (ExprDotName) e;
+      ExprDotName exp = (ExprDotName)e;
       Expression lhs = exp.Lhs;
       string rhs = exp.SuffixName;
       string retval = "";
       Debug.Assert(lhs is NameSegment, "complex expression for ExprDotName lhs unsupported");
       Debug.Assert(replace != null, "the impossible happened! ExprDotName with no finitization!");
-      NameSegment obj = (NameSegment) lhs;
+      NameSegment obj = (NameSegment)lhs;
 
-      if(obj.Name == PrevName || obj.Name == NextName){
+      if (obj.Name == PrevName || obj.Name == NextName) {
         // state machine
         retval += "DafnyState_" + rhs;
-        if(obj.Name == NextName){
+        if (obj.Name == NextName) {
           retval += "_next";
         }
-      }
-      else{
-        retval += replace[obj.Name]+ "_" + rhs;
-        if(obj.Name.EndsWith("'")){
+      } else {
+        retval += replace[obj.Name] + "_" + rhs;
+        if (obj.Name.EndsWith("'")) {
           retval += "_next";
         }
       }
       return retval;
     }
 
-    public string InstantiateNameSegment(Expression e, Dictionary<string, string> replace = null){
+    public string InstantiateNameSegment(Expression e, Dictionary<string, string> replace = null) {
       Debug.Assert(replace != null, "the impossible happened! name segment not finite?");
-      NameSegment exp = (NameSegment) e;
-      if(exp.Name.EndsWith("'")){
+      NameSegment exp = (NameSegment)e;
+      if (exp.Name.EndsWith("'")) {
         return replace[exp.Name] + "_next";
       }
       return replace[exp.Name];
