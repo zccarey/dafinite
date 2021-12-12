@@ -90,6 +90,8 @@ namespace Microsoft.Dafny {
 
     public List<Predicate> ActionPredicates = new List<Predicate>();
 
+    public Dictionary<string, Predicate> OtherPredicates = new Dictionary<string, Predicate>();
+
     public Dictionary<string, DafnyDatatype> DafnyDatatypes = new Dictionary<string, DafnyDatatype>();
 
     public VMTPrinter(TextWriter wr,
@@ -257,7 +259,7 @@ namespace Microsoft.Dafny {
                      + ". The first represents the current/previous state, the second represents the next state.");
         ActionPredicates.Add(pred);
       } else {
-        Debug.Assert(false, "Predicate '" + name + "' is not an action, relation, or keyword");
+        OtherPredicates.Add(name, pred);
       }
     }
 
@@ -664,8 +666,40 @@ namespace Microsoft.Dafny {
     }
 
     public string InstantiateFunction(string name, List<Expression> args, Dictionary<string, string> replace = null) {
-      string retval = "";
-      Debug.Assert(false, "calling functions unsupported currently");
+      Debug.Assert(replace != null || args.Count == 0, "the impossible happened! function not finitized!");
+      Predicate p = OtherPredicates[name];
+      string tempprev = PrevName;
+      string tempnext = NextName;
+      bool encountered_prev = false;
+      bool encountered_next = false;
+      Dictionary<string, string> diff_replace = new Dictionary<string, string>();
+
+      for (int i = 0; i < args.Count(); ++i) {
+
+        if (p.Formals[i].Name == PrevName) {
+          PrevName = p.Formals[i].Name;
+          encountered_prev = true;
+          continue;
+        } else if (p.Formals[i].Name == NextName) {
+          NextName = p.Formals[i].Name;
+          encountered_next = true;
+          continue;
+        }
+        NameSegment n = (NameSegment)args[i];
+        diff_replace.Add(p.Formals[i].Name, replace[n.Name]);
+      }
+
+      if (!encountered_next) {
+        NextName = null;
+      }
+      if (!encountered_prev) {
+        PrevName = null;
+      }
+
+      string retval = InstantiateExpr(p.Body, diff_replace);
+
+      PrevName = tempprev;
+      NextName = tempnext;
       return retval;
     }
 
