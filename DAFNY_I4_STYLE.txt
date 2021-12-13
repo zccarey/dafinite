@@ -14,6 +14,9 @@ Running Dafny compiler:
 - If a datatype needs a unique ID, its constructor should take an integer parameter "id" ("id: int").
   The "id" parameter will be generally ignored and "identification" will be handled by the finitization logic.
       NOTE: Actually probably don't care about this. Put any ID logic in a relation (Exists special???)
+- In Dafny, equality/inequality checks on two datatype instances implies equality/inequality checks on
+  all members of the datatype. This is not the case in our translation to VMT. To perform an equality/inequality
+  check on two instances of a datatype, you must currently manually check all members.
 
 ========== PREDICATES ==========
 
