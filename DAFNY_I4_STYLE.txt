@@ -38,4 +38,18 @@ Running Dafny compiler:
 
 ========== EXPRESSIONS ==========
 
-- Essentially, expressions better be simple boolean logic (including quantifiers), and relations.
+Due to time constraints, only a subset of Dafny expressions are supported at the moment. These expressions were chosen because it allowed for implementing real protocols. While this expression list can be expanded upon in the future, the current supported expressions include:
+    - boolean values, true and false
+    - The boolean logic operators AND, OR, NOT, IMPLIES
+    - EQUALS for ID and boolean values
+    - Quantifiers FORALL, EXISTS on finitized objects
+    - Calling predicates on finitized parameters
+    - Parenthesis expressions
+    - Simple dot expressions (take the form EXPR.EXPR)
+        Allowed: PREFIXNAME.SUFFIXNAME (such as m.clients)
+        Not Allowed: COMPLEXEXPR.SUFFIXNAME (such as m.clients[0].connServers[0].semaphore)
+    - Sets of Finitized objects
+    - Set membership: in and !in on simple expressions
+        Allowed: OBJ in OBJ (such as c in m.clients)
+        Not Allowed: COMPLEXEXPR in COMPLEXEXPR
+    
