@@ -93,16 +93,19 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      // Console.WriteLine("========================= Printing program (afterResolver = " + afterResolver + ") to file " + filename + "=========================");
-      if (afterResolver && DafnyOptions.O.DafnyFinitizedDatatypes.Count != 0) {
-        var tw = DafnyOptions.O.DafnyPrintFinitizedVMTFile == "-" ? Console.Out : new StreamWriter(DafnyOptions.O.DafnyPrintFinitizedVMTFile);
-        var vmtPr = new VMTPrinter(tw, DafnyOptions.O.DafnyFinitizedDatatypes, DafnyOptions.O.PrintMode);
-        vmtPr.PrintProgram(program, afterResolver);
-      } else {
-        var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
-        var pr = new Printer(tw, DafnyOptions.O.PrintMode);
-        pr.PrintProgram(program, afterResolver);
+      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var pr = new Printer(tw, DafnyOptions.O.PrintMode);
+      pr.PrintProgram(program, afterResolver);
+    }
+
+    public static void FinitizeProgram(Program program, string filename) {
+      if (filename == null) {
+        return;
       }
+      
+      var tw = filename == "-" ? Console.Out : new StreamWriter(filename);
+      var vmtPr = new VMTPrinter(tw, DafnyOptions.O.DafnyFinitizedDatatypes);
+      vmtPr.PrintProgram(program, true);
     }
 
     /// <summary>
@@ -168,6 +171,11 @@ namespace Microsoft.Dafny {
       r.ResolveProgram(program);
       MaybePrintProgram(program, DafnyOptions.O.DafnyPrintResolvedFile, true);
 
+      // Dafinite invocation
+      if (DafnyOptions.O.DafnyFinitizedDatatypes.Count != 0) {
+        FinitizeProgram(program, DafnyOptions.O.DafnyPrintFinitizedVMTFile);
+      }
+      
       if (reporter.Count(ErrorLevel.Error) != 0) {
         return string.Format("{0} resolution/type errors detected in {1}", reporter.Count(ErrorLevel.Error), program.Name);
       }

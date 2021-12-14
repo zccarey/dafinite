@@ -10,7 +10,7 @@ using Bpl = Microsoft.Boogie;
 namespace Microsoft.Dafny {
 
   public class DafnyDatatype {
-    /*
+  /*
     EXAMPLE:
 
     Whatever = SomeCtor(id:int, semaphore:bool, servers:set<Server>, c: Client)
@@ -51,10 +51,10 @@ namespace Microsoft.Dafny {
 
     public TYPE T;
 
-    // Used when t == USER_DEFINED & new definition
+    // Used when T == USER_DEFINED & new definition
     public List<DafnyDatatype> Members = null;
 
-    // Used when t == SET ||
+    // Used when T == SET || T == USER_DEFINED
     public DafnyDatatype Subtype = null; // DafnyDatatypes[this.Subtype]
   }
 
@@ -83,11 +83,6 @@ namespace Microsoft.Dafny {
 
     public string NextName = null;
 
-    // maps name of relation to names of datatypes
-    public Dictionary<string, List<string>> RelationDatatypeParams = new Dictionary<string, List<string>>();
-
-    public Dictionary<string, List<string>> RelationCombos = new Dictionary<string, List<string>>();
-
     public List<Predicate> ActionPredicates = new List<Predicate>();
 
     public Dictionary<string, Predicate> OtherPredicates = new Dictionary<string, Predicate>();
@@ -95,9 +90,8 @@ namespace Microsoft.Dafny {
     public Dictionary<string, DafnyDatatype> DafnyDatatypes = new Dictionary<string, DafnyDatatype>();
 
     public VMTPrinter(TextWriter wr,
-                      Dictionary<string, int> datatypeInstanceCounts,
-                      DafnyOptions.PrintModes printMode = DafnyOptions.PrintModes.Everything)
-        : base(wr, printMode) {
+                      Dictionary<string, int> datatypeInstanceCounts)
+        : base(wr, DafnyOptions.PrintModes.Everything) {
       Instances = datatypeInstanceCounts;
     }
 
@@ -111,7 +105,7 @@ namespace Microsoft.Dafny {
       BuildStates();
       BuildInit();
       BuildActions();
-      DeclareActionsAndTransitionRelations();
+      DeclareActions();
       BuildNext();
       BuildSafety();
 
@@ -248,6 +242,7 @@ namespace Microsoft.Dafny {
                      + ". The first represents the current/previous state, the second represents the next state.");
         NextPredicate = pred;
       } else if (name == STATE_MACHINE_SAFETY_PRED_NAME) {
+        // Dealing with Safety
         Debug.Assert(pred.Formals.Count == 1, "Invariant predicate must take exactly one parameter, of type " + STATE_MACHINE_DATATYPE_NAME);
         InvariantPredicate = pred;
       } else if (name.StartsWith(STATE_MACHINE_ACTION_PREFIX) && name != STATE_MACHINE_ACTION_PREFIX) {
@@ -356,7 +351,7 @@ namespace Microsoft.Dafny {
       NextName = null;
     }
 
-    public void DeclareActionsAndTransitionRelations() {
+    public void DeclareActions() {
       wr.WriteLine("\n; Declare actions");
 
       var l = Convert.ToInt32(Math.Log2(ActionPredicates.Count));
@@ -378,7 +373,9 @@ namespace Microsoft.Dafny {
       string checkActions = "";
       string checkNoAction = " (=> (not (or";
       foreach (Predicate pred in ActionPredicates) {
-        checkActions += " (=> (= action " + pred.Name + ") (and " + pred.Name + "_fun))"; // TODO add parantheses and stuff if we add parameters to actions
+        // If you want to allow actions to take parameters, you will have to add parentheses
+        // around "<pred.Name>_fun <parameters>" at the end of this line.
+        checkActions += " (=> (= action " + pred.Name + ") (and " + pred.Name + "_fun))";
         checkNoAction += " (= action " + pred.Name + ")";
       }
       checkNoAction += ")) (and";

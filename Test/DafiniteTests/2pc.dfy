@@ -52,7 +52,6 @@ predicate ActionVoteYes(m: DafnyState, m': DafnyState){
         && !n.vote_n
         && !n.commit
         && !n.abort
-        // TODO TODO TODO do we care if they have rcvd anything?
 
         // reqs on next state
         && n'.vote_y
@@ -79,7 +78,6 @@ predicate ActionVoteNo(m: DafnyState, m': DafnyState){
         && !n.vote_y
         && !n.commit
         && !n.abort
-        // TODO TODO TODO do we care if they have rcvd anything?
 
         // reqs on next state
         && n'.vote_n

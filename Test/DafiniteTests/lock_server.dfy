@@ -111,30 +111,3 @@ predicate Safety(m: DafnyState)
         ((s in c1.connServers && s in c2.connServers) ==> c1.id == c2.id)
     )
 }
-
-/*
-
-// Notes from Manos re: proving protocols correct in Dafny, safety property vs.
-// inductive invariants.
-
-lemma InitImpliesInv(m: DafnyState)
-    requires Init(m)
-    ensures Inv(m)
-{
-
-}
-
-lemma NextPreservesInv(m: DafnyState, m': DafnyState)
-    requires Next(m, m')
-    requires Inv(m)
-    ensures Inv(m')
-{
-
-}
-
-lemma InvImpliesSafety(m: DafnyState)
-    requires Inv(m)
-    ensures Safety(m)
-{
-}
-*/
